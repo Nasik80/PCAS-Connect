@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Department, Subject, Student, Teacher, Enrollment, Attendance
+from .models import Department, Subject, Student, Teacher, Enrollment, Attendance, TeacherSubject,  Period, TimeTable
 
 
 class EnrollmentAdmin(admin.ModelAdmin):
@@ -29,3 +29,6 @@ admin.site.register(Subject)
 admin.site.register(Teacher)
 admin.site.register(Enrollment)
 admin.site.register(Attendance)
+admin.site.register(TeacherSubject)
+admin.site.register(Period)
+admin.site.register(TimeTable)

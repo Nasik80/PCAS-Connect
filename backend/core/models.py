@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Count
+from django.contrib.auth.models import User
 
 # ------------------------
 # Department
@@ -43,11 +44,14 @@ class Subject(models.Model):
 
 
 class Student(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     register_number = models.CharField(max_length=20, unique=True)
     email = models.EmailField(unique=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     semester = models.IntegerField()
+    dob = models.DateField(null=True, blank=True)
+
 
     def __str__(self):
         return self.name
@@ -67,6 +71,73 @@ class Student(models.Model):
             return 0
         return round((present / total) * 100, 2)
 
+    def get_today_attendance(self):
+       from .models import Attendance
+       from datetime import date
+ 
+       today = date.today()
+
+       records = Attendance.objects.filter(student=self, date=today)
+
+       total_periods = records.count()
+       present_periods = records.filter(status='P').count()
+
+       percentage = 0
+       if total_periods > 0:
+         percentage = round((present_periods / total_periods) * 100, 2)
+
+       return {
+        "present": present_periods,
+        "total": total_periods,
+        "percentage": percentage
+    }
+
+    def get_monthly_attendance(self, year, month):
+      from .models import Attendance
+      from datetime import date
+
+      records = Attendance.objects.filter(
+        student=self,
+        date__year=year,
+        date__month=month
+     )
+
+      total_classes = records.count()
+      present_classes = records.filter(status='P').count()
+
+      percentage = 0
+      if total_classes > 0:
+        percentage = round((present_classes / total_classes) * 100, 2)
+
+    # Subject-wise breakdown
+      subjects = records.values('subject__name').distinct()
+
+      subject_data = []
+      for s in subjects:
+        name = s['subject__name']
+        sub_records = records.filter(subject__name=name)
+
+        total_sub = sub_records.count()
+        present_sub = sub_records.filter(status='P').count()
+
+        sub_percent = 0
+        if total_sub > 0:
+            sub_percent = round((present_sub / total_sub) * 100, 2)
+
+        subject_data.append({
+            "subject": name,
+            "present": present_sub,
+            "total": total_sub,
+            "percentage": sub_percent
+        })
+
+      return {
+        "present": present_classes,
+        "total": total_classes,
+        "percentage": percentage,
+        "subjects": subject_data
+    }
+
 # ------------------------
 # Teacher
 # ------------------------
@@ -77,6 +148,99 @@ class Teacher(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+    # 🔥 Get all subjects handled by this teacher
+    def subjects(self):
+        return [ts.subject for ts in self.teachersubject_set.all()]
+
+    # 🔥 Get all students enrolled in the teacher's subjects
+    def students_for_subject(self, subject):
+        return [e.student for e in Enrollment.objects.filter(subject=subject)]
+    
+    def get_today_periods(self):
+      from datetime import datetime, date
+      from core.models import TimeTable, Attendance
+
+      today = datetime.now().strftime("%a").upper()
+      today_date = date.today()
+
+    # Get today's timetable entries for this teacher
+      periods = TimeTable.objects.filter(
+        teacher=self,
+        day=today
+     )
+
+      result = []
+      for p in periods:
+        # Check if attendance exists for this period already
+        attendance_done = Attendance.objects.filter(
+            teacher=self,
+            period=p.period,
+            date=today_date,
+            subject=p.subject
+        ).exists()
+
+        result.append({
+            "period_number": p.period.number,
+            "subject": p.subject.name,
+            "attendance_done": attendance_done
+        })
+
+      return result
+
+    def get_monthly_summary(self, year, month):
+      from core.models import Attendance
+      from django.db.models import Count
+
+    # All attendance records marked by this teacher in the month
+      records = Attendance.objects.filter(
+        teacher=self,
+        date__year=year,
+        date__month=month
+      )
+
+      total_classes_taken = records.count()
+
+    # Subject-wise summary
+      subject_summary = (
+        records.values('subject__name')
+        .annotate(count=Count('id'))
+        .order_by('subject__name')
+      )
+
+    # Dates teacher taught
+      days_taught = (
+        records.values_list('date', flat=True)
+        .distinct()
+        .order_by('date')
+      )
+
+    # Format subject data
+      subjects = [
+        {
+            "subject": s['subject__name'],
+            "classes_taken": s['count']
+        }
+        for s in subject_summary
+      ]
+
+      return {
+        "total_classes_taken": total_classes_taken,
+        "subject_breakdown": subjects,
+        "days_taught": list(days_taught)
+ }
+
+class TeacherSubject(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('teacher', 'subject')
+
+    def __str__(self):
+        return f"{self.teacher.name} → {self.subject.name}"
+
 
 # ------------------------
 # Enrollment (Student-Subject Link)
@@ -88,24 +252,62 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.name} → {self.subject.name}"
+    
+class Period(models.Model):
+    number = models.IntegerField()  # 1,2,3,4,5
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ['number']
+
+    def __str__(self):
+        return f"Period {self.number} ({self.start_time}-{self.end_time})"
 
 # ------------------------
 # Attendance (Subject-wise)
 # ------------------------
 class Attendance(models.Model):
-
     STATUS_CHOICES = [
         ('P', 'Present'),
         ('A', 'Absent'),
     ]
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)  # actual subject taken
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    period = models.ForeignKey(Period, on_delete=models.CASCADE)
     date = models.DateField()
     status = models.CharField(max_length=1, choices=STATUS_CHOICES)
 
     class Meta:
-        unique_together = ('student', 'subject', 'date')
+        unique_together = ('student', 'subject', 'date', 'period')
 
     def __str__(self):
-        return f"{self.student.name} - {self.subject.name} - {self.status}"
+        return f"{self.student.name} - {self.subject.name} - P{self.period.number} - {self.date} ({self.status})"
+
+
+
+
+class TimeTable(models.Model):
+    DAYS = [
+        ('MON', 'Monday'),
+        ('TUE', 'Tuesday'),
+        ('WED', 'Wednesday'),
+        ('THU', 'Thursday'),
+        ('FRI', 'Friday'),
+        ('SAT', 'Saturday'),
+    ]
+
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    semester = models.IntegerField()
+    day = models.CharField(max_length=3, choices=DAYS)
+    period = models.ForeignKey(Period, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('department', 'semester', 'day', 'period')
+
+    def __str__(self):
+        return f"{self.department.code} Sem {self.semester} - {self.get_day_display()} P{self.period.number}"
