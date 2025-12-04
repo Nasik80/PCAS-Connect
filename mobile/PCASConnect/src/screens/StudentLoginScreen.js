@@ -94,6 +94,8 @@ const StudentLoginScreen = ({ navigation }) => {
           />
 
           <View style={styles.footer}>
+            <Text style={styles.footerText}>Forget Password?.</Text>
+            
              <Text style={styles.footerText}>Don't have an account? Contact Admin.</Text>
           </View>
         </View>

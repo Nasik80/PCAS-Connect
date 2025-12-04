@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = "http://10.121.154.1:8000"; // change this
+const BASE_URL = "http://127.0.0.1:8000";
+ // change this
 
 // STUDENT DASHBOARD API
 export const getStudentProfile = async (studentId) => {
