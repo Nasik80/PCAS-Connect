@@ -5,6 +5,10 @@ from datetime import date
 from .models import Attendance, Subject, Student
 from django.contrib.auth import authenticate
 from .serializers import SubjectSerializer  
+from django.contrib.auth import authenticate
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from .models import Student, Department, Subject, User
 
 @api_view(['GET'])
 def teacher_subjects(request, teacher_id):
@@ -371,3 +375,73 @@ def export_semester_attendance_excel(request, department_id, semester, year, mon
 
     wb.save(response)
     return response
+
+@api_view(['GET'])
+def student_timetable(request, student_id):
+    try:
+        student = Student.objects.get(id=student_id)
+    except Student.DoesNotExist:
+        return Response({"error": "Student not found"}, status=404)
+
+    # Fetch timetable for student's department & semester
+    timetable = TimeTable.objects.filter(
+        department=student.department,
+        semester=student.semester
+    ).order_by('period__number')  # Sort by period number
+
+    # Group by Day
+    grouped_timetable = {
+        "MON": [], "TUE": [], "WED": [], "THU": [], "FRI": [], "SAT": []
+    }
+
+    serializer = TimeTableSerializer(timetable, many=True)
+    
+    for entry in serializer.data:
+        day = entry['day']
+        if day in grouped_timetable:
+            grouped_timetable[day].append(entry)
+
+    return Response(grouped_timetable)
+
+
+
+# ... keep existing views ...
+
+# ---------------------------------------------------
+# ADMIN DASHBOARD API
+# ---------------------------------------------------
+
+@api_view(['POST'])
+def admin_login(request):
+    username = request.data.get("username") # Admin uses username usually, or email
+    password = request.data.get("password")
+
+    user = authenticate(username=username, password=password)
+
+    if user is None:
+        return Response({"error": "Invalid credentials"}, status=401)
+    
+    if not user.is_staff:
+        return Response({"error": "Access Denied: Not an Admin"}, status=403)
+
+    return Response({
+        "message": "Login successful",
+        "user_id": user.id,
+        "username": user.username,
+        "is_superuser": user.is_superuser
+    })
+
+@api_view(['GET'])
+def admin_dashboard_stats(request):
+    # This endpoint returns the counts for the dashboard cards
+    student_count = Student.objects.count()
+    teacher_count = Teacher.objects.count()
+    dept_count = Department.objects.count()
+    subject_count = Subject.objects.count()
+
+    return Response({
+        "students": student_count,
+        "teachers": teacher_count,
+        "departments": dept_count,
+        "subjects": subject_count
+    })

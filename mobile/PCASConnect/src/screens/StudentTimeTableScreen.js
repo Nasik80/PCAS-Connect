@@ -1,55 +1,63 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
+import { 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView 
+} from 'react-native';
 import { colors } from '../constants/colors';
-import { BookOpen, Clock } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getSemesterSubjects, getStudentProfile } from '../services/api';
+import { getStudentTimetable } from '../api/studentApi';
+import { Clock, User } from 'lucide-react-native';
 
-const StudentTimeTableScreen = () => {
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+const StudentTimetableScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [subjects, setSubjects] = useState([]);
-  const [semesterInfo, setSemesterInfo] = useState({ dept: '', sem: '' });
+  const [timetable, setTimetable] = useState(null);
+  const [selectedDay, setSelectedDay] = useState("MON"); // Default to Monday
 
   useEffect(() => {
-    fetchSubjects();
+    // Auto-select today's day
+    const today = new Date().getDay(); // 0=Sun, 1=Mon...
+    const dayMap = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    if (today !== 0) setSelectedDay(dayMap[today]);
+
+    fetchTimetable();
   }, []);
 
-  const fetchSubjects = async () => {
+  const fetchTimetable = async () => {
     try {
       const storedStudent = await AsyncStorage.getItem("student");
-      if (storedStudent) {
-        const student = JSON.parse(storedStudent);
-        const studentId = student.student_id;
-
-        // 1. Get Profile to know Dept & Sem
-        // (If your login response already has dept_id, you can skip this)
-        const profile = await getStudentProfile(studentId);
-        
-        setSemesterInfo({ dept: profile.department, sem: profile.semester });
-
-        // 2. Fetch Subjects
-        // Note: Using department_id = 1 as fallback if string is returned
-        const deptId = profile.department_id || 1; 
-        const data = await getSemesterSubjects(deptId, profile.semester);
-        setSubjects(data);
+      const student = JSON.parse(storedStudent);
+      
+      if (student?.student_id) {
+        const data = await getStudentTimetable(student.student_id);
+        setTimetable(data);
       }
     } catch (error) {
-      console.error("TimeTable Fetch Error:", error);
+      console.error("Timetable fetch error:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderSubjectItem = ({ item }) => (
+  const renderPeriodItem = ({ item }) => (
     <View style={styles.card}>
-      <View style={styles.iconBox}>
-        <BookOpen color="white" size={24} />
+      <View style={styles.periodBadge}>
+        <Text style={styles.periodNumber}>{item.period.number}</Text>
       </View>
+      
       <View style={styles.cardContent}>
-        <Text style={styles.subjectName}>{item.name}</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.codeBadge}>{item.code}</Text>
-          <Text style={styles.creditText}>{item.credit} Credits</Text>
+        <Text style={styles.subjectName}>{item.subject.name}</Text>
+        
+        <View style={styles.row}>
+          <Clock size={14} color={colors.textSecondary} />
+          <Text style={styles.detailText}>
+            {item.period.start_time.slice(0,5)} - {item.period.end_time.slice(0,5)}
+          </Text>
+        </View>
+
+        <View style={styles.row}>
+          <User size={14} color={colors.textSecondary} />
+          <Text style={styles.detailText}>{item.teacher_name}</Text>
         </View>
       </View>
     </View>
@@ -65,121 +73,128 @@ const StudentTimeTableScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Semester Subjects</Text>
-        <Text style={styles.headerSubtitle}>
-          {semesterInfo.dept} • Semester {semesterInfo.sem}
-        </Text>
+        <Text style={styles.headerTitle}>Weekly Timetable</Text>
       </View>
 
-      <FlatList
-        data={subjects}
-        keyExtractor={(item) => item.code || item.name}
-        renderItem={renderSubjectItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No subjects found for this semester.</Text>
-        }
-      />
+      {/* Day Selector */}
+      <View style={styles.daySelectorContainer}>
+        <FlatList
+          data={DAYS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={[
+                styles.dayButton, 
+                selectedDay === item && styles.dayButtonActive
+              ]}
+              onPress={() => setSelectedDay(item)}
+            >
+              <Text style={[
+                styles.dayText, 
+                selectedDay === item && styles.dayTextActive
+              ]}>
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      {/* Timetable List */}
+      <View style={styles.listContainer}>
+        {timetable && timetable[selectedDay] && timetable[selectedDay].length > 0 ? (
+          <FlatList
+            data={timetable[selectedDay]}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderPeriodItem}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No classes scheduled for {selectedDay}</Text>
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
   header: {
     backgroundColor: colors.primary,
-    padding: 24,
+    padding: 20,
     paddingTop: 40,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    alignItems: 'center'
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+
+  daySelectorContainer: {
+    marginTop: 15,
+    height: 50,
+  },
+  dayButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 5,
+    borderRadius: 20,
+    backgroundColor: '#E0E7FF',
+    justifyContent: 'center'
+  },
+  dayButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  dayText: {
+    color: colors.primary,
+    fontWeight: 'bold'
+  },
+  dayTextActive: {
     color: 'white',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#E0F2FE',
-    marginTop: 4,
-    opacity: 0.9,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
+
+  listContainer: { flex: 1, padding: 15 },
+  
   card: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 15,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 5,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
   },
-  iconBox: {
-    width: 50,
-    height: 50,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
+  periodBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F9FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 15,
+    borderWidth: 1,
+    borderColor: '#BAE6FD'
   },
-  cardContent: {
-    flex: 1,
-  },
-  subjectName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  codeBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginRight: 10,
-    fontWeight: '600',
-  },
-  creditText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-  }
+  periodNumber: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+  
+  cardContent: { flex: 1 },
+  subjectName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  detailText: { marginLeft: 6, color: colors.textSecondary, fontSize: 13 },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
+  emptyText: { color: colors.textSecondary, fontStyle: 'italic' }
 });
 
-export default StudentTimeTableScreen;
+export default StudentTimetableScreen;

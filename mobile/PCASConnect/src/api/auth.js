@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // UPDATED IP ADDRESS FROM YOUR TERMINAL
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "http://10.200.3.62:8000";
 
 
 export const loginUser = async (role, email, password) => {

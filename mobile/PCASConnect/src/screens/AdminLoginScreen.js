@@ -1,24 +1,34 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import { colors } from '../constants/colors';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
-import { loginUser } from '../api/auth';
-import { ArrowLeft } from 'lucide-react-native';
+import { adminLogin } from '../services/adminApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminLoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if(!email || !password) return;
+    if (!username || !password) {
+      Alert.alert("Error", "Please fill all fields");
+      return;
+    }
+
     setLoading(true);
     try {
-      await loginUser('admin', email, password);
-      alert("Admin Login API Called");
+      const data = await adminLogin(username, password);
+      
+      // Save session
+      await AsyncStorage.setItem("adminUser", JSON.stringify(data));
+      
+      // Navigate to Admin Dashboard (We will create this next)
+      navigation.replace("AdminDashboard");
+      
     } catch (error) {
-      alert("Login Failed");
+      Alert.alert("Login Failed", error);
     } finally {
       setLoading(false);
     }
@@ -26,87 +36,48 @@ const AdminLoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}
-      >
-        <View style={styles.header}>
-          <Text style={styles.backButton} onPress={() => navigation.goBack()}>
-             <ArrowLeft color={colors.textPrimary} size={24} />
-          </Text>
-        </View>
+      <View style={styles.content}>
+        <Text style={styles.title}>Admin Portal</Text>
+        <Text style={styles.subtitle}>PCAS Connect Management</Text>
 
-        <View style={styles.formContainer}>
-          <Text style={styles.brandTitle}>PCAS Connect</Text>
-          <Text style={styles.screenTitle}>Login as Admin</Text>
-          <Text style={styles.subtitle}>Secure administrative access.</Text>
-
-          <View style={styles.inputs}>
-            <CustomInput 
-              placeholder="Admin Email" 
-              value={email} 
-              setValue={setEmail}
-              keyboardType="email-address"
-            />
-            <CustomInput 
-              placeholder="Password" 
-              value={password} 
-              setValue={setPassword}
-              isPassword={true}
-            />
-          </View>
+        <View style={styles.form}>
+          <CustomInput 
+            placeholder="Username" 
+            value={username} 
+            setValue={setUsername} 
+            icon="user"
+          />
+          <CustomInput 
+            placeholder="Password" 
+            value={password} 
+            setValue={setPassword} 
+            secureTextEntry 
+            icon="lock"
+          />
 
           <CustomButton 
-            text="Secure Login" 
+            text={loading ? "Verifying..." : "Login to Dashboard"} 
             onPress={handleLogin} 
-            isLoading={loading}
+            type="PRIMARY"
+          />
+
+          <CustomButton 
+            text="Back to Role Selection" 
+            onPress={() => navigation.goBack()} 
+            type="TERTIARY"
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  header: {
-    padding: 30,
-    marginTop: 30,
-  },
-  formContainer: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    marginBottom: 50,
-  },
-  brandTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.primary,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  screenTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 30,
-  },
-  inputs: {
-    marginBottom: 20,
-  }
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 32, fontWeight: 'bold', color: colors.primary, textAlign: 'center', marginBottom: 10 },
+  subtitle: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 40 },
+  form: { width: '100%' },
 });
 
 export default AdminLoginScreen;

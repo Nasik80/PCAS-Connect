@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "http://10.200.3.62:8000";
  // change this
 
 // STUDENT DASHBOARD API
@@ -26,5 +26,11 @@ export const getMonthlyAttendance = async (studentId, year, month) => {
 // SUBJECTS OF SEMESTER
 export const getSemesterSubjects = async (deptId, semester) => {
   const res = await axios.get(`${BASE_URL}/api/subjects/${deptId}/${semester}/`);
+  return res.data;
+};
+
+// GET STUDENT TIMETABLE
+export const getStudentTimetable = async (studentId) => {
+  const res = await axios.get(`${BASE_URL}/api/student/${studentId}/timetable/`);
   return res.data;
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AdminTabs from './AdminTabs';
 
 // Screens
 import SplashScreen from '../screens/SplashScreen';
@@ -29,9 +30,8 @@ const AppNavigator = () => {
         <Stack.Screen name="StudentLogin" component={StudentLoginScreen} />
         <Stack.Screen name="TeacherLogin" component={TeacherLoginScreen} />
         <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
-        
-        {/* 👇 Points to the Tab Navigator now 👇 */}
         <Stack.Screen name="StudentDashboard" component={StudentTabs} />
+        <Stack.Screen name="AdminDashboard" component={AdminTabs} />
         
       </Stack.Navigator>
     </NavigationContainer>
@@ -39,3 +39,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

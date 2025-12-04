@@ -71,27 +71,41 @@ class Student(models.Model):
             return 0
         return round((present / total) * 100, 2)
 
+    # In backend/core/models.py inside class Student:
+
     def get_today_attendance(self):
        from .models import Attendance
        from datetime import date
  
        today = date.today()
 
-       records = Attendance.objects.filter(student=self, date=today)
+       # Fetch records with subject and period details
+       records = Attendance.objects.filter(student=self, date=today).select_related('subject', 'period').order_by('period__number')
 
        total_periods = records.count()
        present_periods = records.filter(status='P').count()
+       absent_periods = total_periods - present_periods # Calculate absents
 
        percentage = 0
        if total_periods > 0:
          percentage = round((present_periods / total_periods) * 100, 2)
 
+       # Create the details list for the frontend
+       details = []
+       for record in records:
+           details.append({
+               "period": record.period.number,
+               "subject": record.subject.name,
+               "status": record.status
+           })
+
        return {
         "present": present_periods,
-        "total": total_periods,
-        "percentage": percentage
+        "absent": absent_periods, # Added absent count
+        "total": total_periods,   # Frontend expects 'total'
+        "percentage": percentage,
+        "details": details        # Added the list of subjects
     }
-
     def get_monthly_attendance(self, year, month):
       from .models import Attendance
       from datetime import date
