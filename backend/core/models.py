@@ -12,6 +12,18 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
+# ------------------------
+# Batch (New)
+# ------------------------
+class Batch(models.Model):
+    name = models.CharField(max_length=50) # e.g., "2023-2026"
+    start_year = models.IntegerField()
+    end_year = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
 
 # ------------------------
 # Subject
@@ -160,8 +172,30 @@ class Teacher(models.Model):
     email = models.EmailField(unique=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    is_hod = models.BooleanField(default=False)
+
     def __str__(self):
         return self.name
+
+class Announcement(models.Model):
+    AUDIENCE_CHOICES = [
+        ('ALL', 'Entire College'),
+        ('STUDENTS', 'All Students'),
+        ('TEACHERS', 'All Teachers'),
+        ('DEPT', 'Department Specific'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    date = models.DateTimeField(auto_now_add=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True) # If specific to dept
+    semester = models.IntegerField(null=True, blank=True) # If specific to semester
+
+    def __str__(self):
+        return self.title
     
 
     # 🔥 Get all subjects handled by this teacher

@@ -1,14 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Settings } from 'lucide-react-native'; // Icons
+import { Home, Users, Search } from 'lucide-react-native';
 import { colors } from '../constants/colors';
-import { View } from 'react-native';
 
 // Screens
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
-
-// Placeholder for now
-const AdminSettingsScreen = () => <View style={{flex:1, backgroundColor:'white'}} />;
+import AdminClassMonitorScreen from '../screens/AdminClassMonitorScreen';
+import AdminStudentFilterScreen from '../screens/AdminStudentFilterScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -22,18 +20,28 @@ const AdminTabs = () => {
         tabBarStyle: { height: 60, paddingBottom: 10, paddingTop: 10 }
       }}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={AdminDashboardScreen} 
+      <Tab.Screen
+        name="Dashboard"
+        component={AdminDashboardScreen}
         options={{
-          tabBarIcon: ({ color }) => <Home color={color} size={24} />
+          tabBarIcon: ({ color }) => <Home color={color} size={24} />,
+          title: "Home"
         }}
       />
-      <Tab.Screen 
-        name="Settings" 
-        component={AdminSettingsScreen} 
+      <Tab.Screen
+        name="Monitor"
+        component={AdminClassMonitorScreen}
         options={{
-          tabBarIcon: ({ color }) => <Settings color={color} size={24} />
+          tabBarIcon: ({ color }) => <Users color={color} size={24} />,
+          title: "Class View"
+        }}
+      />
+      <Tab.Screen
+        name="Students"
+        component={AdminStudentFilterScreen}
+        options={{
+          tabBarIcon: ({ color }) => <Users color={color} size={24} />,
+          title: "Students"
         }}
       />
     </Tab.Navigator>

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TimeTable, Period, Subject, Teacher
+from .models import TimeTable, Period, Subject, Student, Teacher, Department
 
 class PeriodSerializer(serializers.ModelSerializer):
     class Meta:

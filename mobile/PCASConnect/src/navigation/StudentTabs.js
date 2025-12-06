@@ -1,12 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
-import { Home, Calendar, Bell, User } from 'lucide-react-native';
+import { Home, Calendar, Bell, User, BookOpen } from 'lucide-react-native';
 import { colors } from '../constants/colors';
 
 // Screens
 import StudentDashboardScreen from '../screens/StudentDashboardScreen';
 import StudentTimeTableScreen from '../screens/StudentTimeTableScreen';
+import StudentSubjectsScreen from '../screens/StudentSubjectsScreen';
 
 // Dummy Screens for now
 const DummyScreen = ({ name }) => (
@@ -42,26 +43,35 @@ const StudentTabs = () => {
         }
       }}
     >
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name="Home"
         component={StudentDashboardScreen}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => <Home color={color} size={24} />,
         }}
       />
-      
-      <Tab.Screen 
-        name="TimeTable" 
+
+      <Tab.Screen
+        name="TimeTable"
         component={StudentTimeTableScreen}
         options={{
-          tabBarLabel: 'Subjects',
+          tabBarLabel: 'TimeTable',
           tabBarIcon: ({ color, size }) => <Calendar color={color} size={24} />,
         }}
       />
 
-      <Tab.Screen 
-        name="Notifications" 
+      <Tab.Screen
+        name="Subjects"
+        component={StudentSubjectsScreen}
+        options={{
+          tabBarLabel: 'Subjects',
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="Notifications"
         children={() => <DummyScreen name="Notifications" />}
         options={{
           tabBarLabel: 'Notices',
@@ -69,8 +79,8 @@ const StudentTabs = () => {
         }}
       />
 
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         children={() => <DummyScreen name="Profile" />}
         options={{
           tabBarLabel: 'Profile',

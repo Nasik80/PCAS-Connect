@@ -1,224 +1,218 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, Image, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, Image, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { GraduationCap, Briefcase, ShieldCheck } from 'lucide-react-native';
+import { GraduationCap, Briefcase, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { colors } from '../constants/colors';
 
 const collegeLogoImg = require('../../assets/college_logo.png');
 
-const CustomButton = ({ text, onPress, icon, gradient }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-    <LinearGradient
-      colors={gradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.button}
-    >
-      <View style={styles.buttonIcon}>{icon}</View>
-      <Text style={styles.buttonText}>{text}</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-);
+const RoleCard = ({ title, subtitle, icon, onPress, color, delay }) => {
+  const scale = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 500,
+      delay: delay,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.spring(scale, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      delay: delay,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+        onPress={onPress}
+      >
+        <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
+          {React.cloneElement(icon, { color: color, size: 28 })}
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={styles.cardSubtitle}>{subtitle}</Text>
+        </View>
+        <View style={[styles.arrowBox, { backgroundColor: `${color}10` }]}>
+          <ChevronRight color={color} size={20} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 const RoleSelectScreen = ({ navigation }) => {
   return (
-    <View style={styles.wrapper}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2', '#f093fb']}
-        style={styles.backgroundGradient}
-      />
-      
-      {/* Decorative circles */}
-      <View style={[styles.circle, styles.circle1]} />
-      <View style={[styles.circle, styles.circle2]} />
-      <View style={[styles.circle, styles.circle3]} />
-      
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoWrapper}>
-              <View style={styles.logoGlow} />
-              <Image 
-                source={collegeLogoImg} 
-                style={styles.logo} 
-                resizeMode="contain"
-              />
+          <View style={styles.header}>
+            <Image
+              source={collegeLogoImg}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <View>
+              <Text style={styles.welcomeText}>Welcome to</Text>
+              <Text style={styles.appName}>PCAS Connect</Text>
             </View>
-            <Text style={styles.appName}>PCAS Connect</Text>
-            <Text style={styles.tagline}>Your Gateway to Excellence</Text>
           </View>
-        
-          {/* Instruction Text */}
+
           <View style={styles.instructionContainer}>
-            <Text style={styles.instructionText}>Select your role to continue</Text>
-          </View>
-          
-          {/* Button Section */}
-          <View style={styles.buttonContainer}>
-            <CustomButton 
-              text="Student Login" 
-              onPress={() => navigation?.navigate('StudentLogin')}
-              icon={<GraduationCap color="white" size={24} />}
-              gradient={['#667eea', '#764ba2']}
-            />
-            
-            <CustomButton 
-              text="Teacher Login" 
-              onPress={() => navigation?.navigate('TeacherLogin')}
-              icon={<Briefcase color="white" size={24} />}
-              gradient={['#f093fb', '#f5576c']}
-            />
-
-            <CustomButton 
-              text="Admin Login" 
-              onPress={() => navigation?.navigate('AdminLogin')}
-              icon={<ShieldCheck color="white" size={24} />}
-              gradient={['#4facfe', '#00f2fe']}
-            />
+            <Text style={styles.sectionTitle}>Choose your role</Text>
+            <Text style={styles.sectionSubtitle}>Select how you want to sign in</Text>
           </View>
 
-          {/* Footer */}
-          <Text style={styles.footer}>Secure & Reliable Access</Text>
+          <View style={styles.cardsContainer}>
+            <RoleCard
+              title="Student"
+              subtitle="Access timetable & attendance"
+              icon={<GraduationCap />}
+              color={colors.primary}
+              delay={300}
+              onPress={() => navigation.navigate('StudentLogin')}
+            />
+
+            <RoleCard
+              title="Teacher"
+              subtitle="Manage classes & students"
+              icon={<Briefcase />}
+              color={colors.secondary}
+              delay={450}
+              onPress={() => navigation.navigate('TeacherLogin')}
+            />
+
+            <RoleCard
+              title="Administrator"
+              subtitle="System management & reports"
+              icon={<ShieldCheck />}
+              color={colors.accent}
+              delay={600}
+              onPress={() => navigation.navigate('AdminLogin')}
+            />
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Secure Access • v1.0.0</Text>
+          </View>
         </View>
       </SafeAreaView>
     </View>
   );
 };
 
-const { width, height } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: '#667eea',
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  circle: {
-    position: 'absolute',
-    borderRadius: 9999,
-    opacity: 0.1,
-    backgroundColor: 'white',
-  },
-  circle1: {
-    width: 300,
-    height: 300,
-    top: -100,
-    right: -100,
-  },
-  circle2: {
-    width: 200,
-    height: 200,
-    bottom: 100,
-    left: -50,
-  },
-  circle3: {
-    width: 150,
-    height: 150,
-    top: height * 0.4,
-    right: -30,
-  },
   container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  safeArea: {
     flex: 1,
   },
   content: {
     flex: 1,
     padding: 24,
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingBottom: 40,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  logoWrapper: {
-    position: 'relative',
-    marginBottom: 24,
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    top: -10,
-    left: -10,
-  },
-  logo: {
-    width: 180, 
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'white',
-    padding: 10,
-  },
-  appName: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: 'white',
-    marginBottom: 8,
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  tagline: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  instructionContainer: {
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  instructionText: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: '600',
-    textAlign: 'center',
-    opacity: 0.95,
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-  },
-  button: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  buttonIcon: {
-    marginRight: 12,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  footer: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 13,
-    fontWeight: '500',
+    marginBottom: 40,
     marginTop: 20,
   },
+  logo: {
+    width: 60,
+    height: 60,
+    marginRight: 16,
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  appName: {
+    fontSize: 24,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  instructionContainer: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  cardsContainer: {
+    gap: 16,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    padding: 20,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: colors.surfaceHighlight,
+  },
+  iconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  arrowBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footer: {
+    marginTop: 'auto',
+    alignItems: 'center',
+  },
+  footerText: {
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: '600',
+  }
 });
 
 export default RoleSelectScreen;
