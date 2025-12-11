@@ -51,24 +51,34 @@ class StudentCreateSerializer(serializers.ModelSerializer):
 class TeacherCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
-        fields = ['name', 'email', 'department', 'is_hod']
-        extra_kwargs = {'is_hod': {'required': False}}
+        fields = ['name', 'email', 'department', 'phone', 'dob', 'role', 'qualification', 'date_of_joining']
+        extra_kwargs = {
+            'phone': {'required': False},
+            'qualification': {'required': False},
+            'date_of_joining': {'required': False}
+        }
 
     def create(self, validated_data):
         from django.contrib.auth.models import User
         
         name = validated_data.get('name')
         email = validated_data.get('email')
+        dob = validated_data.get('dob')
+        role = validated_data.get('role', 'TEACHER')
         
-        # Generate Password: 5 name chars (UPPER) + 1234 (Default)
+        # Generate Password: 5 name chars (UPPER) + Birth Year
         clean_name = name.replace(" ", "")[:5].upper()
-        password = f"{clean_name}1234"
+        year = str(dob.year) if dob else "2000"
+        password = f"{clean_name}{year}"
         
         # Create User
         user = User.objects.create_user(username=email, email=email, password=password)
         
+        # Set is_hod flag based on role
+        is_hod = (role == 'HOD')
+        
         # Create Teacher
-        teacher = Teacher.objects.create(user=user, **validated_data)
+        teacher = Teacher.objects.create(user=user, is_hod=is_hod, **validated_data)
         
         # Attach temp data
         teacher._generated_password = password

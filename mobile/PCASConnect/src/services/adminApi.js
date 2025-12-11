@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // REPLACE WITH YOUR ACTUAL IP ADDRESS
-const BASE_URL = "http://10.200.3.27:8000";
+const BASE_URL = "http://10.219.6.134:8000";
 
 // LOGIN
 export const adminLogin = async (username, password) => {
@@ -133,6 +133,49 @@ export const deleteStudent = async (id) => {
 export const resetStudentPassword = async (id) => {
     try {
         const res = await axios.post(`${BASE_URL}/api/admin/student/${id}/reset-password/`);
+        return res.data;
+    } catch (error) {
+        throw error.response?.data || "Failed to reset password";
+    }
+};
+
+// --- TEACHER MANAGEMENT ---
+
+export const getTeacherList = async (deptId, search) => {
+    let url = `${BASE_URL}/api/admin/teachers/list/?`;
+    if (deptId) url += `department_id=${deptId}&`;
+    if (search) url += `search=${search}&`;
+
+    const res = await axios.get(url);
+    return res.data;
+};
+
+export const getTeacherDetails = async (id) => {
+    const res = await axios.get(`${BASE_URL}/api/admin/teacher/${id}/`);
+    return res.data;
+};
+
+export const updateTeacher = async (id, data) => {
+    try {
+        const res = await axios.put(`${BASE_URL}/api/admin/teacher/${id}/`, data);
+        return res.data;
+    } catch (error) {
+        throw error.response?.data || "Failed to update teacher";
+    }
+};
+
+export const deleteTeacher = async (id) => {
+    try {
+        const res = await axios.delete(`${BASE_URL}/api/admin/teacher/${id}/`);
+        return res.data;
+    } catch (error) {
+        throw error.response?.data || "Failed to delete teacher";
+    }
+};
+
+export const resetTeacherPassword = async (id) => {
+    try {
+        const res = await axios.post(`${BASE_URL}/api/admin/teacher/${id}/reset-password/`);
         return res.data;
     } catch (error) {
         throw error.response?.data || "Failed to reset password";

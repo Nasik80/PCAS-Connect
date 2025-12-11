@@ -26,6 +26,12 @@ import AdminStudentListScreen from '../screens/AdminStudentListScreen';
 import AdminStudentViewScreen from '../screens/AdminStudentViewScreen';
 import AdminStudentEditScreen from '../screens/AdminStudentEditScreen';
 
+// Admin Teacher Management
+import AdminTeacherFilterScreen from '../screens/AdminTeacherFilterScreen';
+import AdminTeacherListScreen from '../screens/AdminTeacherListScreen';
+import AdminTeacherViewScreen from '../screens/AdminTeacherViewScreen';
+import AdminTeacherEditScreen from '../screens/AdminTeacherEditScreen';
+
 // Import the Tab Navigator
 import StudentTabs from './StudentTabs';
 
@@ -66,6 +72,12 @@ const AppNavigator = () => {
         <Stack.Screen name="AdminStudentList" component={AdminStudentListScreen} />
         <Stack.Screen name="AdminStudentView" component={AdminStudentViewScreen} />
         <Stack.Screen name="AdminStudentEdit" component={AdminStudentEditScreen} />
+
+        {/* Admin Teacher Management */}
+        <Stack.Screen name="AdminTeacherFilter" component={AdminTeacherFilterScreen} />
+        <Stack.Screen name="AdminTeacherList" component={AdminTeacherListScreen} />
+        <Stack.Screen name="AdminTeacherView" component={AdminTeacherViewScreen} />
+        <Stack.Screen name="AdminTeacherEdit" component={AdminTeacherEditScreen} />
 
         {/* We will add other HOD action screens here later */}
       </Stack.Navigator>

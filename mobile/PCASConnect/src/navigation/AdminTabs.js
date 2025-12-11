@@ -7,6 +7,7 @@ import { colors } from '../constants/colors';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import AdminClassMonitorScreen from '../screens/AdminClassMonitorScreen';
 import AdminStudentFilterScreen from '../screens/AdminStudentFilterScreen';
+import AdminTeacherFilterScreen from '../screens/AdminTeacherFilterScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -42,6 +43,14 @@ const AdminTabs = () => {
         options={{
           tabBarIcon: ({ color }) => <Users color={color} size={24} />,
           title: "Students"
+        }}
+      />
+      <Tab.Screen
+        name="Teachers"
+        component={AdminTeacherFilterScreen}
+        options={{
+          tabBarIcon: ({ color }) => <Users color={color} size={24} />,
+          title: "Teachers"
         }}
       />
     </Tab.Navigator>

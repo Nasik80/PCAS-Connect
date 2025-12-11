@@ -15,7 +15,10 @@ from .views import (
     PromoteStudentsView,
     AdminStudentListView,
     AdminStudentDetailView,
-    AdminStudentPasswordResetView
+    AdminStudentPasswordResetView,
+    AdminTeacherListView,
+    AdminTeacherDetailView,
+    AdminTeacherPasswordResetView
 )
 
 urlpatterns = [
@@ -43,4 +46,9 @@ urlpatterns = [
     path('students/list/', AdminStudentListView.as_view(), name='admin-student-list'),
     path('student/<int:pk>/', AdminStudentDetailView.as_view(), name='admin-student-detail'),
     path('student/<int:pk>/reset-password/', AdminStudentPasswordResetView.as_view(), name='admin-student-password-reset'),
+
+    # Teacher Management
+    path('teachers/list/', AdminTeacherListView.as_view(), name='admin-teacher-list'),
+    path('teacher/<int:pk>/', AdminTeacherDetailView.as_view(), name='admin-teacher-detail'),
+    path('teacher/<int:pk>/reset-password/', AdminTeacherPasswordResetView.as_view(), name='admin-teacher-password-reset'),
 ]

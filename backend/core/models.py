@@ -168,9 +168,28 @@ class Student(models.Model):
 # Teacher
 # ------------------------
 class Teacher(models.Model):
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+
+    ROLE_CHOICES = [
+        ('TEACHER', 'Teacher'),
+        ('HOD', 'HOD'),
+    ]
+
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    
+    # New fields to match DB
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    dob = models.DateField(null=True, blank=True)
+    date_of_joining = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
+    qualification = models.CharField(max_length=100, null=True, blank=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='TEACHER')
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     is_hod = models.BooleanField(default=False)

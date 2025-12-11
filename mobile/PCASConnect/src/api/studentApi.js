@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://10.200.3.27:8000";
+const BASE_URL = "http://10.219.6.134:8000";
 // change this
 
 // STUDENT DASHBOARD API

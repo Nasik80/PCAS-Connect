@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList
+    View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, ScrollView, Platform
 } from 'react-native';
 import { colors } from '../constants/colors';
 import { addTeacher, getDepartments } from '../services/adminApi';
-import { ArrowLeft, Check, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Check, ChevronDown, Calendar, Phone, Mail, User, Shield } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const AddTeacherScreen = ({ navigation }) => {
+    // Form State
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [department, setDepartment] = useState(null);
+    const [phone, setPhone] = useState('');
+    const [qualification, setQualification] = useState('');
+    const [dob, setDob] = useState(null);
+    const [joiningDate, setJoiningDate] = useState(null);
 
+    // Selectors
+    const [department, setDepartment] = useState(null);
+    const [role, setRole] = useState('TEACHER'); // TEACHER or HOD
+
+    // Data & UI State
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // Modals
     const [deptModalVisible, setDeptModalVisible] = useState(false);
+    const [showDobPicker, setShowDobPicker] = useState(false);
+    const [showJoinPicker, setShowJoinPicker] = useState(false);
 
     useEffect(() => {
         fetchDepartments();
@@ -29,21 +43,32 @@ const AddTeacherScreen = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
-        if (!name || !email || !department) {
-            Alert.alert("Error", "All fields are required");
+        if (!name || !email || !department || !dob || !phone) {
+            Alert.alert("Validation Error", "Name, Email, Phone, DOB, and Department are required.");
             return;
         }
 
         setLoading(true);
         try {
-            await addTeacher({
+            const payload = {
                 name,
                 email,
-                department: department.id
-            });
-            Alert.alert("Success", "Teacher added successfully", [
-                { text: "OK", onPress: () => navigation.goBack() }
-            ]);
+                phone,
+                department: department.id,
+                dob: dob.toISOString().split('T')[0],
+                role,
+                qualification,
+                date_of_joining: joiningDate ? joiningDate.toISOString().split('T')[0] : null
+            };
+
+            const response = await addTeacher(payload);
+            const password = response._generated_password || "Check Email/Admin";
+
+            Alert.alert(
+                "Teacher Created!",
+                `Teacher added successfully.\n\nGenerated Password: ${password}`,
+                [{ text: "OK", onPress: () => navigation.goBack() }]
+            );
         } catch (error) {
             let msg = "Something went wrong";
             if (error && typeof error === 'object') {
@@ -59,14 +84,25 @@ const AddTeacherScreen = ({ navigation }) => {
         }
     };
 
-    const renderModal = (visible, items, onSelect, onClose, displayProperty = null) => (
+    // Date Helpers
+    const handleDobChange = (event, selectedDate) => {
+        setShowDobPicker(Platform.OS === 'ios');
+        if (selectedDate) setDob(selectedDate);
+    };
+
+    const handleJoinDateChange = (event, selectedDate) => {
+        setShowJoinPicker(Platform.OS === 'ios');
+        if (selectedDate) setJoiningDate(selectedDate);
+    };
+
+    const renderModal = (visible, items, onSelect, onClose) => (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Select Option</Text>
+                    <Text style={styles.modalTitle}>Select Department</Text>
                     <FlatList
                         data={items}
-                        keyExtractor={(item, index) => index.toString()}
+                        keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 style={styles.modalItem}
@@ -75,9 +111,7 @@ const AddTeacherScreen = ({ navigation }) => {
                                     onClose();
                                 }}
                             >
-                                <Text style={styles.modalItemText}>
-                                    {displayProperty ? item[displayProperty] : item}
-                                </Text>
+                                <Text style={styles.modalItemText}>{item.name}</Text>
                             </TouchableOpacity>
                         )}
                     />
@@ -98,26 +132,95 @@ const AddTeacherScreen = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Add Teacher</Text>
             </View>
 
-            <View style={styles.form}>
+            <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
+
+                {/* Name */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Name</Text>
-                    <TextInput style={styles.input} placeholder="Teacher Name" value={name} onChangeText={setName} />
+                    <Text style={styles.label}>Full Name *</Text>
+                    <View style={styles.inputContainer}>
+                        <User size={20} color="#999" style={styles.icon} />
+                        <TextInput style={styles.input} placeholder="e.g. John Doe" value={name} onChangeText={setName} />
+                    </View>
                 </View>
 
+                {/* Email */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Email</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="email@example.com"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
+                    <Text style={styles.label}>Email Address *</Text>
+                    <View style={styles.inputContainer}>
+                        <Mail size={20} color="#999" style={styles.icon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="email@example.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
                 </View>
 
+                {/* Phone */}
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Department</Text>
+                    <Text style={styles.label}>Phone Number *</Text>
+                    <View style={styles.inputContainer}>
+                        <Phone size={20} color="#999" style={styles.icon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="+91 9876543210"
+                            value={phone}
+                            onChangeText={setPhone}
+                            keyboardType="phone-pad"
+                        />
+                    </View>
+                </View>
+
+                {/* DOB */}
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Date of Birth *</Text>
+                    <TouchableOpacity style={styles.selectInput} onPress={() => setShowDobPicker(true)}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Calendar size={20} color="#999" style={{ marginRight: 10 }} />
+                            <Text style={[styles.selectText, !dob && { color: '#999' }]}>
+                                {dob ? dob.toDateString() : "Select Date"}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                    {showDobPicker && (
+                        <DateTimePicker
+                            value={dob || new Date(1990, 0, 1)}
+                            mode="date"
+                            display="default"
+                            onChange={handleDobChange}
+                            maximumDate={new Date()}
+                        />
+                    )}
+                </View>
+
+                {/* Role Selector */}
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Role *</Text>
+                    <View style={styles.roleContainer}>
+                        <TouchableOpacity
+                            style={[styles.roleBtn, role === 'TEACHER' && styles.activeRole]}
+                            onPress={() => setRole('TEACHER')}
+                        >
+                            <User size={18} color={role === 'TEACHER' ? 'white' : colors.primary} />
+                            <Text style={[styles.roleText, role === 'TEACHER' && styles.activeRoleText]}>Teacher</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.roleBtn, role === 'HOD' && styles.activeRole]}
+                            onPress={() => setRole('HOD')}
+                        >
+                            <Shield size={18} color={role === 'HOD' ? 'white' : colors.primary} />
+                            <Text style={[styles.roleText, role === 'HOD' && styles.activeRoleText]}>HOD</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Department */}
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Department *</Text>
                     <TouchableOpacity style={styles.selectInput} onPress={() => setDeptModalVisible(true)}>
                         <Text style={[styles.selectText, !department && { color: '#999' }]}>
                             {department ? department.name : "Select Department"}
@@ -126,6 +229,41 @@ const AddTeacherScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Qualification */}
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Qualification</Text>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.inputNotIcon}
+                            placeholder="e.g. MSc, PhD"
+                            value={qualification}
+                            onChangeText={setQualification}
+                        />
+                    </View>
+                </View>
+
+                {/* Date of Joining */}
+                <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Date of Joining</Text>
+                    <TouchableOpacity style={styles.selectInput} onPress={() => setShowJoinPicker(true)}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Calendar size={20} color="#999" style={{ marginRight: 10 }} />
+                            <Text style={[styles.selectText, !joiningDate && { color: '#999' }]}>
+                                {joiningDate ? joiningDate.toDateString() : "Select Date"}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                    {showJoinPicker && (
+                        <DateTimePicker
+                            value={joiningDate || new Date()}
+                            mode="date"
+                            display="default"
+                            onChange={handleJoinDateChange}
+                        />
+                    )}
+                </View>
+
+                {/* Submit Button */}
                 <TouchableOpacity
                     style={[styles.submitBtn, loading && styles.disabledBtn]}
                     onPress={handleSubmit}
@@ -138,36 +276,52 @@ const AddTeacherScreen = ({ navigation }) => {
                         </>
                     )}
                 </TouchableOpacity>
-            </View>
 
-            {renderModal(deptModalVisible, departments, setDepartment, () => setDeptModalVisible(false), 'name')}
+                <View style={{ height: 40 }} />
+            </ScrollView>
 
+            {renderModal(deptModalVisible, departments, setDepartment, () => setDeptModalVisible(false))}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 60 },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, paddingHorizontal: 24 },
     backBtn: { padding: 8, marginRight: 16 },
     headerTitle: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
-    form: { gap: 16 },
-    inputGroup: { gap: 6 },
-    label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-    input: {
-        backgroundColor: 'white', padding: 14, borderRadius: 12, fontSize: 15,
-        borderWidth: 1, borderColor: colors.surfaceHighlight, color: colors.textPrimary
+
+    form: { paddingHorizontal: 24 },
+    inputGroup: { marginBottom: 18 },
+    label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+
+    inputContainer: {
+        flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#eee'
     },
+    icon: { marginLeft: 12 },
+    input: { flex: 1, padding: 14, fontSize: 15, color: colors.textPrimary },
+    inputNotIcon: { flex: 1, padding: 14, fontSize: 15, color: colors.textPrimary, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
+
     selectInput: {
         backgroundColor: 'white', padding: 14, borderRadius: 12,
-        borderWidth: 1, borderColor: colors.surfaceHighlight,
+        borderWidth: 1, borderColor: '#eee',
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
     },
     selectText: { fontSize: 15, color: colors.textPrimary },
+
+    roleContainer: { flexDirection: 'row', gap: 10 },
+    roleBtn: {
+        flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+        padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.primary, gap: 8
+    },
+    activeRole: { backgroundColor: colors.primary },
+    roleText: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
+    activeRoleText: { color: 'white' },
+
     submitBtn: {
         backgroundColor: colors.primary, padding: 16, borderRadius: 16,
         flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12,
-        marginTop: 16
+        marginTop: 20, elevation: 3
     },
     disabledBtn: { opacity: 0.7 },
     submitText: { fontSize: 16, fontWeight: '700', color: 'white' },

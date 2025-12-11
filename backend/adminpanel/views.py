@@ -408,3 +408,144 @@ class AdminStudentPasswordResetView(APIView):
             
         except Student.DoesNotExist:
              return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class AdminTeacherListView(APIView):
+    def get(self, request):
+        dept_id = request.GET.get('department_id')
+        query = request.GET.get('search')
+        
+        teachers = Teacher.objects.filter(role='TEACHER') # Only list regular teachers, or all? Spec said "Manage Teachers". Assuming role=TEACHER.
+        # Actually spec implies all teachers. Let's include HODs if they are teachers? 
+        # But commonly we might want to see everyone. Let's just list all Teacher objects.
+        teachers = Teacher.objects.all()
+
+        if dept_id:
+            teachers = teachers.filter(department_id=dept_id)
+        if query:
+            teachers = teachers.filter(
+                Q(name__icontains=query) | 
+                Q(email__icontains=query) |
+                Q(phone__icontains=query)
+            )
+
+        data = [
+            {
+                "id": t.id,
+                "name": t.name,
+                "email": t.email,
+                "phone": t.phone,
+                "department_id": t.department.id,
+                "department_name": t.department.name,
+                "role": t.role,
+                "is_hod": t.is_hod
+            }
+            for t in teachers
+        ]
+        return Response(data)
+
+class AdminTeacherDetailView(APIView):
+    def get_object(self, pk):
+        try:
+            return Teacher.objects.get(pk=pk)
+        except Teacher.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        teacher = self.get_object(pk)
+        if not teacher:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get Assigned Subjects
+        from core.models import TeacherSubject
+        assigned_subjects = TeacherSubject.objects.filter(teacher=teacher)
+        subjects_data = [
+            {
+                "id": ts.subject.id,
+                "name": ts.subject.name,
+                "code": ts.subject.code,
+                "semester": ts.subject.semester
+            }
+            for ts in assigned_subjects
+        ]
+
+        data = {
+            "id": teacher.id,
+            "name": teacher.name,
+            "email": teacher.email,
+            "phone": teacher.phone,
+            "dob": teacher.dob,
+            "gender": teacher.gender,
+            "qualification": teacher.qualification,
+            "department": teacher.department.id,
+            "department_name": teacher.department.name,
+            "role": teacher.role,
+            "is_hod": teacher.is_hod,
+            "subjects": subjects_data
+        }
+        return Response(data)
+
+    def put(self, request, pk):
+        teacher = self.get_object(pk)
+        if not teacher:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        
+        old_dept_id = teacher.department.id
+        
+        # Update Fields
+        teacher.name = data.get('name', teacher.name)
+        teacher.email = data.get('email', teacher.email)
+        teacher.phone = data.get('phone', teacher.phone)
+        
+        if 'department' in data:
+            new_dept_id = int(data['department'])
+            if new_dept_id != old_dept_id:
+                # Department Changed!
+                teacher.department_id = new_dept_id
+                
+                # Remove previous subject linking
+                from core.models import TeacherSubject
+                TeacherSubject.objects.filter(teacher=teacher).delete()
+        
+        teacher.save()
+        
+        # Update User
+        if teacher.user:
+            teacher.user.email = teacher.email
+            teacher.user.username = teacher.email
+            teacher.user.save()
+
+        return Response({"message": "Teacher updated successfully"})
+
+    def delete(self, request, pk):
+        teacher = self.get_object(pk)
+        if not teacher:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if teacher.user:
+            teacher.user.delete()
+        else:
+            teacher.delete()
+            
+        return Response({"message": "Teacher deleted successfully"})
+
+class AdminTeacherPasswordResetView(APIView):
+    def post(self, request, pk):
+        try:
+            teacher = Teacher.objects.get(pk=pk)
+            if not teacher.user:
+                 return Response({"error": "Teacher has no linked user account"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generate Password: FIRST 5 letters of name (uppercase) + year_of_birth
+            clean_name = teacher.name.replace(" ", "")[:5].upper()
+            year = str(teacher.dob.year) if teacher.dob else "2000" # Fallback if DOB missing
+            new_password = f"{clean_name}{year}"
+            
+            teacher.user.set_password(new_password)
+            teacher.user.save()
+            
+            return Response({"message": "Password reset successfully", "new_password": new_password})
+            
+        except Teacher.DoesNotExist:
+             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
