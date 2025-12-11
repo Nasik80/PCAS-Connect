@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL } from '../api/auth';
+import { BASE_URL } from '../services/api';
 import { Picker } from '@react-native-picker/picker';
 
 const HODAnnouncementScreen = ({ navigation }) => {

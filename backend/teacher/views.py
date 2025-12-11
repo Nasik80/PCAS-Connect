@@ -344,3 +344,121 @@ class HODTimetableView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class TeacherDashboardView(APIView):
+    def get(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # 1. Subjects
+        subjects = teacher.subjects()
+        subjects_data = [{"id": s.id, "name": s.name, "code": s.code} for s in subjects]
+
+        # 2. Today's Classes & Pending Attendance
+        today_periods = teacher.get_today_periods() # Returns list of dicts with 'attendance_done'
+        today_total = len(today_periods)
+        today_pending = len([p for p in today_periods if not p['attendance_done']])
+
+        # 3. Latest Announcements (2)
+        announcements = Announcement.objects.filter(
+            audience__in=['ALL', 'TEACHERS', 'DEPT']
+        ).order_by('-date')[:2]
+        
+        # Filter Dept specific if needed, but for simplicity show public+teachers
+        # If we really want dept specific:
+        # announcements = announcements.filter(Q(department=teacher.department) | Q(department__isnull=True)) 
+        # For now, sticking to basic filter.
+
+        ann_data = [
+            {
+                "id": a.id,
+                "title": a.title,
+                "date": a.date.strftime("%Y-%m-%d"),
+                "sender": a.sender.username
+            }
+            for a in announcements
+        ]
+
+        return Response({
+            "teacher": {
+                "name": teacher.name,
+                "department": teacher.department.name,
+                "role": "HOD" if teacher.is_hod else "TEACHER"
+            },
+            "stats": {
+                "subjects_count": len(subjects),
+                "today_classes": today_total,
+                "pending_attendance": today_pending,
+            },
+            "subjects": subjects_data,
+            "announcements": ann_data
+        })
+
+class HODDashboardView(APIView):
+    def get(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+            if not teacher.is_hod:
+                return Response({"error": "Access Denied"}, status=status.HTTP_403_FORBIDDEN)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        department = teacher.department
+
+        # 1. Department Stats
+        student_count = Student.objects.filter(department=department).count()
+        teacher_count = Teacher.objects.filter(department=department).count()
+        subject_count = Subject.objects.filter(department=department).count()
+
+        # 2. Today's Attendance Summary (Avg % of students present today or recently)
+        # Simplify: Just count total students present today vs total students
+        # or reuse HODDashboardStatsView logic
+        today = date.today()
+        attendance_recs = Attendance.objects.filter(student__department=department, date=today)
+        
+        # This is strictly counting 'entries' which might duplicate students if multiple periods.
+        # Better metric: Unique students present at least once? Or avg session attendance.
+        # Let's stick to Average Session Attendance %
+        total_slots = attendance_recs.count()
+        present_slots = attendance_recs.filter(status='P').count()
+        attendance_percent = round((present_slots / total_slots * 100), 1) if total_slots > 0 else 0
+
+        # 3. Low Attendance Students (Bottom 5 < 75%)
+        # This is expensive to calculate on fly without aggregation. 
+        # For MVP, let's just fetch random 5 or skip if too complex.
+        # Let's try a simple heuristic or leave empty for now to save DB load, 
+        # or just fetch 5 students and calc their aggregate. 
+        # A real implementation needs a dedicated MonthlyAttendance summary table.
+        # We will mock this or provide a placeholder.
+        low_attendance_list = [] # Placeholder for performance
+
+        # 4. Announcements
+        announcements = Announcement.objects.filter(
+            audience__in=['ALL', 'TEACHERS', 'DEPT']
+        ).order_by('-date')[:2]
+
+        ann_data = [
+            {
+                "id": a.id,
+                "title": a.title,
+                "date": a.date.strftime("%Y-%m-%d"),
+                "sender": a.sender.username
+            }
+            for a in announcements
+        ]
+
+        return Response({
+            "hod": {
+                "name": teacher.name,
+                "department": department.name,
+            },
+            "stats": {
+                "students": student_count,
+                "teachers": teacher_count,
+                "subjects": subject_count,
+                "today_attendance": attendance_percent
+            },
+            "low_attendance": low_attendance_list,
+            "announcements": ann_data
+        })

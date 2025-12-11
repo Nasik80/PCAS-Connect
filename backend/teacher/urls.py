@@ -13,12 +13,17 @@ from .views import (
     HODTeacherListView,
     HODAssignTeacherView,
     HODAnnouncementView,
-    HODTimetableView
+    HODTimetableView,
+    TeacherDashboardView,
+    HODDashboardView
 )
 
 urlpatterns = [
     # Auth
     path('login/', TeacherLoginView.as_view(), name='teacher-login'),
+
+    path('dashboard/teacher/<int:teacher_id>/', TeacherDashboardView.as_view(), name='teacher-dashboard-main'),
+    path('dashboard/hod/<int:teacher_id>/', HODDashboardView.as_view(), name='hod-dashboard-main'),
 
     # Teacher Role
     path('<int:teacher_id>/subjects/', TeacherSubjectsView.as_view(), name='teacher-subjects'),
@@ -29,7 +34,7 @@ urlpatterns = [
     path('<int:teacher_id>/attendance/monthly/<int:year>/<int:month>/', TeacherMonthlySummaryView.as_view(), name='teacher-monthly-summary'),
 
     # HOD Role
-    path('hod/dashboard/<int:teacher_id>/', HODDashboardStatsView.as_view(), name='hod-dashboard'),
+    path('hod/stats/<int:teacher_id>/', HODDashboardStatsView.as_view(), name='hod-stats-old'), # Renamed old one to avoid conflict if needed, or just keep
     path('hod/students/<int:department_id>/', HODStudentListView.as_view(), name='hod-student-list'),
     path('hod/promote/', HODPromotionView.as_view(), name='hod-promote'),
     path('hod/teachers/<int:department_id>/', HODTeacherListView.as_view(), name='hod-teacher-list'),

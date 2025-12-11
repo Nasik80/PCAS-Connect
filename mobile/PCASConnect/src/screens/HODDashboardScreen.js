@@ -1,164 +1,209 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, RefreshControl, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import DashboardLayout from '../components/DashboardLayout';
+import StatusTiles from '../components/StatusTiles';
+import { colors } from '../constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Users, Calendar, Megaphone, UserPlus, ClipboardList } from 'lucide-react-native';
 import axios from 'axios';
-import { Ionicons } from '@expo/vector-icons';
-import { BASE_URL } from '../api/auth';
+import { BASE_URL } from '../services/api';
 
 const HODDashboardScreen = ({ navigation }) => {
-    const [stats, setStats] = useState(null);
-    const [hodName, setHodName] = useState('');
-    const [departmentName, setDepartmentName] = useState('');
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [data, setData] = useState(null);
+    const [user, setUser] = useState(null);
 
-    const fetchStats = async () => {
+    const fetchData = async () => {
         try {
-            const teacherId = await AsyncStorage.getItem('teacher_id');
-            const name = await AsyncStorage.getItem('name');
-            const dept = await AsyncStorage.getItem('department');
+            const teacherId = await AsyncStorage.getItem('teacherId');
 
-            setHodName(name);
-            setDepartmentName(dept);
+            if (!teacherId) return;
 
-            // Fetch dashboard stats from backend
-            // Endpoint: /api/teacher/hod/dashboard/<teacher_id>/
-            const response = await axios.get(`${BASE_URL}/api/teacher/hod/dashboard/${teacherId}/`);
-            setStats(response.data);
+            // Fetch HOD Dashboard Data
+            const response = await axios.get(`${BASE_URL}/api/teacher/dashboard/hod/${teacherId}/`);
+
+            const d = response.data;
+
+            setUser({
+                name: d.hod.name,
+                role: "HOD",
+                department: d.hod.department,
+                email: "hod@pcas.edu",
+                phone: ""
+            });
+
+            setData(d);
 
         } catch (error) {
-            console.error("Failed to fetch HOD stats", error);
+            console.log("HOD Dashboard Error", error);
+            Alert.alert("Error", "Failed to load HOD dashboard");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
-        fetchStats();
+        fetchData();
     }, []);
 
-    const onRefresh = React.useCallback(() => {
+    const onRefresh = () => {
         setRefreshing(true);
-        fetchStats().then(() => setRefreshing(false));
-    }, []);
+        fetchData();
+    };
+
+    const handleLogout = async () => {
+        await AsyncStorage.clear();
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+        });
+    };
+
+    if (loading && !data) {
+        return (
+            <View style={styles.center}>
+                <Text>Loading Dashboard...</Text>
+            </View>
+        );
+    }
+
+    const { stats, announcements, low_attendance } = data || {};
+
+    const tiles = [
+        {
+            title: "Students",
+            value: stats?.students || 0,
+            color: '#4F46E5',
+            onPress: () => navigation.navigate('Students') // Navigate to Tab
+        },
+        {
+            title: "Teachers",
+            value: stats?.teachers || 0,
+            color: '#10B981',
+            onPress: () => navigation.navigate('Teachers') // Navigate to Tab
+        },
+        {
+            title: "Today's Attend.",
+            value: `${stats?.today_attendance}%`,
+            label: "Avg Dept Attendance",
+            color: '#F59E0B',
+            onPress: () => navigation.navigate('Attendance')
+        },
+        {
+            title: "Subjects",
+            value: stats?.subjects || 0,
+            color: '#EC4899',
+            onPress: () => { } // Maybe navigate to a subjects list if exists?
+        }
+    ];
+
+    const QuickAction = ({ icon, label, onPress, color }) => (
+        <TouchableOpacity style={[styles.qaBtn, { backgroundColor: color }]} onPress={onPress}>
+            {icon}
+            <Text style={styles.qaText}>{label}</Text>
+        </TouchableOpacity>
+    );
 
     return (
-        <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.greeting}>Hello, {hodName}</Text>
-                    <Text style={styles.subGreeting}>HOD - {departmentName}</Text>
-                </View>
-                <TouchableOpacity onPress={async () => {
-                    await AsyncStorage.clear();
-                    navigation.replace('RoleSelect');
-                }}>
-                    <Ionicons name="log-out-outline" size={24} color="#fff" />
-                </TouchableOpacity>
+        <DashboardLayout
+            user={user}
+            onNavigate={(screen) => navigation.navigate(screen)}
+            onLogout={handleLogout}
+        >
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Department Overview</Text>
+            </View>
+            <StatusTiles tiles={tiles} />
+
+            {/* Quick Actions Grid */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
             </View>
 
-            {/* Stats Grid */}
-            <View style={styles.statsGrid}>
-                <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
-                    <Text style={styles.statNumber}>{stats ? stats.total_students : '-'}</Text>
-                    <Text style={styles.statLabel}>Students</Text>
-                </View>
-                <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={styles.statNumber}>{stats ? stats.total_teachers : '-'}</Text>
-                    <Text style={styles.statLabel}>Teachers</Text>
-                </View>
-                <View style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}>
-                    <Text style={styles.statNumber}>{stats ? stats.total_subjects : '-'}</Text>
-                    <Text style={styles.statLabel}>Subjects</Text>
-                </View>
-                <View style={[styles.statCard, { backgroundColor: '#FFEBEE' }]}>
-                    <Text style={styles.statNumber}>{stats ? stats.today_attendance_percent + '%' : '-'}</Text>
-                    <Text style={styles.statLabel}>Today's Attd.</Text>
-                </View>
+            <View style={styles.qaGrid}>
+                <QuickAction
+                    icon={<UserPlus color="white" size={24} />}
+                    label="Promote Students"
+                    color="#6366F1"
+                    onPress={() => navigation.navigate('HODPromote')}
+                />
+                <QuickAction
+                    icon={<Calendar color="white" size={24} />}
+                    label="Timetable"
+                    color="#8B5CF6"
+                    onPress={() => navigation.navigate('Timetable')} // Tab
+                />
+                <QuickAction
+                    icon={<ClipboardList color="white" size={24} />}
+                    label="Assign Teacher"
+                    color="#EC4899"
+                    onPress={() => navigation.navigate('HODAssignTeacher')}
+                />
+                <QuickAction
+                    icon={<Megaphone color="white" size={24} />}
+                    label="Announcement"
+                    color="#F59E0B"
+                    onPress={() => navigation.navigate('HODAnnouncement')}
+                />
             </View>
 
-            {/* Quick Actions */}
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            {/* Low Attendance */}
+            {low_attendance && low_attendance.length > 0 && (
+                <View style={styles.warningSection}>
+                    <Text style={styles.warningTitle}>Low Attendance Alerts</Text>
+                    {low_attendance.map((s, i) => (
+                        <Text key={i} style={styles.warningText}>{s.name} ({s.attendance}%)</Text>
+                    ))}
+                </View>
+            )}
 
-            <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Students')}>
-                    <Ionicons name="school" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Students</Text>
-                </TouchableOpacity>
+            {/* Announcements */}
+            {announcements && announcements.length > 0 && (
+                <>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Latest Announcements</Text>
+                    </View>
+                    {announcements.map((ann, index) => (
+                        <View key={index} style={styles.annCard}>
+                            <Text style={styles.annTitle}>{ann.title}</Text>
+                            <Text style={styles.annDate}>{ann.date}</Text>
+                        </View>
+                    ))}
+                </>
+            )}
 
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Teachers')}>
-                    <Ionicons name="people" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Teachers</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Timetable')}>
-                    <Ionicons name="calendar" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Timetable</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('hod-promote')}>
-                    {/* We need to register this screen in stack or modal, or just inside StudentList */}
-                    <Ionicons name="trending-up" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Promote</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('hod-announcement')}>
-                    <Ionicons name="megaphone" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Post Notice</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('hod-assign-teacher')}>
-                    <Ionicons name="person-add" size={24} color="#6200ea" />
-                    <Text style={styles.actionText}>Assign Subj</Text>
-                </TouchableOpacity>
-            </View>
-
-        </ScrollView>
+        </DashboardLayout>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8f9fa' },
-    header: {
-        backgroundColor: '#6200ea',
-        padding: 20,
-        paddingTop: 50,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    sectionHeader: { paddingHorizontal: 20, marginBottom: 10, marginTop: 10 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+
+    qaGrid: {
+        flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between'
     },
-    greeting: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-    subGreeting: { color: '#e0e0e0', fontSize: 14 },
-    statsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        padding: 10,
-        justifyContent: 'space-between',
-        marginTop: 20
+    qaBtn: {
+        width: '48%', Padding: 15, height: 100, borderRadius: 16, marginBottom: 16,
+        justifyContent: 'center', alignItems: 'center', gap: 8, elevation: 3
     },
-    statCard: {
-        width: '48%',
-        padding: 20,
-        borderRadius: 15,
-        marginBottom: 15,
-        alignItems: 'center',
-        elevation: 2
+    qaText: { color: 'white', fontWeight: 'bold', fontSize: 14, textAlign: 'center' },
+
+    annCard: {
+        backgroundColor: 'white', padding: 16, marginHorizontal: 16, marginBottom: 10,
+        borderRadius: 12, borderWidth: 1, borderColor: '#eee'
     },
-    statNumber: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-    statLabel: { fontSize: 14, color: '#666', marginTop: 5 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginLeft: 15, marginTop: 10, marginBottom: 10 },
-    actionRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15, paddingHorizontal: 10 },
-    actionBtn: {
-        backgroundColor: '#fff',
-        width: 80,
-        height: 80,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 2
-    },
-    actionText: { fontSize: 12, marginTop: 5, color: '#333', textAlign: 'center' }
+    annTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
+    annDate: { fontSize: 12, color: '#888' },
+
+    warningSection: { margin: 16, padding: 15, backgroundColor: '#FEF2F2', borderRadius: 12, borderWidth: 1, borderColor: '#FECACA' },
+    warningTitle: { color: '#EF4444', fontWeight: 'bold', marginBottom: 8 },
+    warningText: { color: '#B91C1C', marginBottom: 4 }
 });
 
 export default HODDashboardScreen;

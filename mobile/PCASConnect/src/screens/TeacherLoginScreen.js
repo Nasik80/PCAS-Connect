@@ -7,6 +7,7 @@ import CustomInput from '../components/CustomInput';
 import { loginUser } from '../api/auth';
 import { ArrowLeft, Mail, Lock, LogIn, GraduationCap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -33,13 +34,29 @@ const TeacherLoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await loginUser('teacher', email, password);
-      Alert.alert("Success", "Teacher Login Successful");
-      // Navigation would go here once dashboard is ready
+      const data = await loginUser('teacher', email, password);
+
+      // Save data
+      await AsyncStorage.setItem('teacher', JSON.stringify(data));
+      await AsyncStorage.setItem('teacherId', data.teacher_id.toString());
+      await AsyncStorage.setItem('teacher_id', data.teacher_id.toString()); // Alias for HOD screens
+      await AsyncStorage.setItem('department_id', data.department_id.toString());
+      await AsyncStorage.setItem('role', data.role);
+      // If token exists in future: await AsyncStorage.setItem('token', data.token);
+
+      Alert.alert("Success", "Login Successful");
+
+      if (data.role === 'HOD') {
+        navigation.replace('HODDashboard');
+      } else {
+        navigation.replace('TeacherDashboard');
+      }
+
     } catch (error) {
       if (error.response && error.response.data) {
         Alert.alert("Login Failed", JSON.stringify(error.response.data));
       } else {
+        console.log(error);
         Alert.alert("Login Failed", "Could not connect to server.");
       }
     } finally {

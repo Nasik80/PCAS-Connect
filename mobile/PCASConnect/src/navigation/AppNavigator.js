@@ -34,6 +34,7 @@ import AdminTeacherEditScreen from '../screens/AdminTeacherEditScreen';
 
 // Import the Tab Navigator
 import StudentTabs from './StudentTabs';
+import TeacherTabs from './TeacherTabs';
 
 const Stack = createNativeStackNavigator();
 
@@ -53,6 +54,7 @@ const AppNavigator = () => {
         <Stack.Screen name="TeacherLogin" component={TeacherLoginScreen} />
         <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
         <Stack.Screen name="StudentDashboard" component={StudentTabs} />
+        <Stack.Screen name="TeacherDashboard" component={TeacherTabs} />
         <Stack.Screen name="AdminDashboard" component={AdminTabs} />
 
         <Stack.Screen name="AddStudent" component={AddStudentScreen} />
@@ -63,9 +65,9 @@ const AppNavigator = () => {
 
         {/* HOD Screens */}
         <Stack.Screen name="HODDashboard" component={HODTabs} />
-        <Stack.Screen name="hod-promote" component={HODPromotionScreen} />
-        <Stack.Screen name="hod-announcement" component={HODAnnouncementScreen} />
-        <Stack.Screen name="hod-assign-teacher" component={HODAssignTeacherScreen} />
+        <Stack.Screen name="HODPromote" component={HODPromotionScreen} />
+        <Stack.Screen name="HODAnnouncement" component={HODAnnouncementScreen} />
+        <Stack.Screen name="HODAssignTeacher" component={HODAssignTeacherScreen} />
 
         {/* Admin Student Management */}
         <Stack.Screen name="AdminStudentFilter" component={AdminStudentFilterScreen} />

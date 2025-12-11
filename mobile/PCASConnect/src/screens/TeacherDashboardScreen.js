@@ -1,37 +1,51 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, RefreshControl, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import DashboardLayout from '../components/DashboardLayout';
+import StatusTiles from '../components/StatusTiles';
 import { colors } from '../constants/colors';
-import IdentityCard from '../components/IdentityCard';
-import StatusCard from '../components/StatusCard';
-import { getTeacherDashboard } from '../api/teacherApi';
-import { BookOpen, Calendar, Clock, Bell, Menu } from 'lucide-react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { getTeacherDashboard } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CheckCircle, Clock } from 'lucide-react-native';
+import axios from 'axios';
+import { BASE_URL } from '../services/api';
+
+// Need to implement getTeacherDashboard in API service or do axios call here for now.
+// I will implement a local fetch helper for now to keep it self-contained or use axios directly.
 
 const TeacherDashboardScreen = ({ navigation }) => {
-    const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({
-        total_subjects_handling: 0,
-        todays_classes: 0,
-        pending_attendance_count: 0,
-        announcements_count: 0
-    });
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [data, setData] = useState(null);
+    const [user, setUser] = useState(null);
 
-    const loadData = async () => {
+    const fetchData = async () => {
         try {
-            const userDataStr = await AsyncStorage.getItem('user_data');
-            if (userDataStr) {
-                const userData = JSON.parse(userDataStr);
-                setUser(userData);
+            const teacherId = await AsyncStorage.getItem('teacherId');
 
-                // Fetch Stats
-                const dashboardData = await getTeacherDashboard(userData.teacher_id);
-                setStats(dashboardData);
+            if (!teacherId) {
+                // Should redirect to login
+                return;
             }
+
+            // Fetch Dashboard Data
+            const response = await axios.get(`${BASE_URL}/api/teacher/dashboard/teacher/${teacherId}/`);
+
+            const d = response.data;
+
+            // Normalize user data for layout
+            setUser({
+                name: d.teacher.name,
+                role: d.teacher.role,
+                department: d.teacher.department,
+                email: "teacher@pcas.edu", // Fallback or need to fetch from profile
+                phone: ""
+            });
+
+            setData(d);
+
         } catch (error) {
-            console.error("Failed to load dashboard data", error);
+            console.log("Dashboard Error", error);
+            // Alert.alert("Error", "Failed to load dashboard");
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -39,115 +53,119 @@ const TeacherDashboardScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
-        loadData();
+        fetchData();
+        // Also fetch profile manually if needed to get email/phone if dash doesn't return it
+        // For now sticking to what dash returns.
     }, []);
 
-    const onRefresh = useCallback(() => {
+    const onRefresh = () => {
         setRefreshing(true);
-        loadData();
-    }, []);
+        fetchData();
+    };
 
-    if (loading) {
+    const handleLogout = async () => {
+        await AsyncStorage.clear();
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+        });
+    };
+
+    if (loading && !data) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
+            <View style={styles.center}>
+                <Text>Loading...</Text>
             </View>
         );
     }
 
+    const { stats, subjects, announcements } = data || {};
+
+    const tiles = [
+        {
+            title: "Subjects Taught",
+            value: stats?.subjects_count || 0,
+            color: '#4F46E5',
+            onPress: () => navigation.navigate('Subjects')
+        },
+        {
+            title: "Classes Today",
+            value: stats?.today_classes || 0,
+            color: '#10B981',
+            onPress: () => navigation.navigate('Timetable')
+        },
+        {
+            title: "Pending Attendance",
+            value: stats?.pending_attendance || 0,
+            label: "Action Required",
+            color: stats?.pending_attendance > 0 ? '#EF4444' : '#10B981',
+            onPress: () => navigation.navigate('Attendance') // Or today's status
+        }
+    ];
+
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.openDrawer()}>
-                    <Menu color={colors.textPrimary} size={28} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>PCAS CONNECT</Text>
-                <View style={{ width: 28 }} />
+        <DashboardLayout
+            user={user}
+            onNavigate={(screen) => navigation.navigate(screen)}
+            onLogout={handleLogout}
+        >
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Overview</Text>
+            </View>
+            <StatusTiles tiles={tiles} />
+
+            {/* Quick Actions / Today's Highlights */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('Attendance')}
             >
-                {user && (
-                    <IdentityCard
-                        name={user.name}
-                        role="Faculty"
-                        department={user.department}
-                        email={user.email}
-                        phone={user.phone} // If available
-                    />
-                )}
+                <CheckCircle size={24} color="white" />
+                <Text style={styles.actionBtnText}>Mark Attendance</Text>
+            </TouchableOpacity>
 
-                <View style={styles.statsGrid}>
-                    <StatusCard
-                        title="Subjects"
-                        value={stats.total_subjects_handling}
-                        icon={<BookOpen color="white" size={24} />}
-                        gradient={colors.gradientPrimary}
-                    />
-                    <StatusCard
-                        title="Today's Classes"
-                        value={stats.todays_classes}
-                        icon={<Calendar color="white" size={24} />}
-                        gradient={colors.gradientSecondary}
-                    />
-                    <StatusCard
-                        title="Pending Attendance"
-                        value={stats.pending_attendance_count}
-                        icon={<Clock color="white" size={24} />}
-                        gradient={['#F43F5E', '#E11D48']} // Rose gradient
-                    />
-                    <StatusCard
-                        title="Announcements"
-                        value={stats.announcements_count}
-                        icon={<Bell color="white" size={24} />}
-                        gradient={['#10B981', '#059669']} // Emerald gradient
-                    />
-                </View>
+            {/* Announcements Preview */}
+            {announcements && announcements.length > 0 && (
+                <>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Latest Announcements</Text>
+                    </View>
+                    {announcements.map((ann, index) => (
+                        <View key={index} style={styles.annCard}>
+                            <Text style={styles.annTitle}>{ann.title}</Text>
+                            <Text style={styles.annDate}>{ann.date} • {ann.sender}</Text>
+                        </View>
+                    ))}
+                </>
+            )}
 
-                {/* Additional Quick Actions or Info can go here */}
-
-            </ScrollView>
-        </SafeAreaView>
+        </DashboardLayout>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    sectionHeader: { paddingHorizontal: 20, marginBottom: 10, marginTop: 10 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+
+    actionBtn: {
+        backgroundColor: colors.primary, marginHorizontal: 16, padding: 16, borderRadius: 12,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+        marginBottom: 20, elevation: 3
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border
+    actionBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
+    annCard: {
+        backgroundColor: 'white', padding: 16, marginHorizontal: 16, marginBottom: 10,
+        borderRadius: 12, borderWidth: 1, borderColor: '#eee'
     },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.primary
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    scrollContent: {
-        paddingBottom: 40
-    },
-    statsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        marginTop: 24
-    }
+    annTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
+    annDate: { fontSize: 12, color: '#888' }
 });
 
 export default TeacherDashboardScreen;

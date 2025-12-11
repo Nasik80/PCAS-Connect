@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ⚠️ UPDATED IP ADDRESS
-const BASE_URL = "http://10.219.6.134:8000";
+export const BASE_URL = "http://10.219.6.134:8000";
 
 
 const api = axios.create({
