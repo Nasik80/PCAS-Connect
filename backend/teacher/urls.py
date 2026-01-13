@@ -15,7 +15,11 @@ from .views import (
     HODAnnouncementView,
     HODTimetableView,
     TeacherDashboardView,
-    HODDashboardView
+    HODDashboardView,
+    GetAttendanceView,
+    HODAttendanceStatsView,
+    HODTimetableGetView,
+    HODInternalMarksView
 )
 
 urlpatterns = [
@@ -29,6 +33,7 @@ urlpatterns = [
     path('<int:teacher_id>/subjects/', TeacherSubjectsView.as_view(), name='teacher-subjects'),
     path('subject/<int:subject_id>/students/', StudentsInSubjectView.as_view(), name='students-in-subject'),
     path('attendance/mark/', MarkAttendanceView.as_view(), name='mark-attendance'),
+    path('attendance/get/', GetAttendanceView.as_view(), name='get-attendance'),
     path('<int:teacher_id>/timetable/today/', TeacherTodayTimetableView.as_view(), name='teacher-today-timetable'),
     path('<int:teacher_id>/today-status/', TeacherTodayStatusView.as_view(), name='teacher-today-status'),
     path('<int:teacher_id>/attendance/monthly/<int:year>/<int:month>/', TeacherMonthlySummaryView.as_view(), name='teacher-monthly-summary'),
@@ -41,4 +46,8 @@ urlpatterns = [
     path('hod/assign-teacher/', HODAssignTeacherView.as_view(), name='hod-assign-teacher'),
     path('hod/announcement/', HODAnnouncementView.as_view(), name='hod-announcement'),
     path('hod/timetable/', HODTimetableView.as_view(), name='hod-timetable'),
+    path('hod/timetable/<int:dept_id>/', HODTimetableGetView.as_view(), name='hod-timetable-get'),
+    path('hod/attendance/stats/<int:dept_id>/', HODAttendanceStatsView.as_view(), name='hod-attendance-stats'),
+    path('hod/internal-marks/<int:dept_id>/', HODInternalMarksView.as_view(), name='hod-internal-marks'),
+    path('hod/internal-marks/action/', HODInternalMarksView.as_view(), name='hod-internal-marks-action'),
 ]

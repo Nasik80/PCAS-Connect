@@ -9,7 +9,8 @@ const DashboardLayout = ({
     user,
     children,
     onNavigate,
-    onLogout
+    onLogout,
+    disableScroll = false
 }) => {
     const [menuVisible, setMenuVisible] = useState(false);
 
@@ -27,25 +28,38 @@ const DashboardLayout = ({
                 {/* Spacer to center title */}
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {disableScroll ? (
+                <View style={[styles.scrollContent, { flex: 1 }]}>
+                    {/* ID Card Fixed at Top if non-scrollable */}
+                    {user && (
+                        <IDCardPanel
+                            name={user.name}
+                            role={user.role}
+                            department={user.department}
+                            email={user.email}
+                            phone={user.phone}
+                        />
+                    )}
+                    {children}
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    {/* ID Card Scrolls with content */}
+                    {user && (
+                        <IDCardPanel
+                            name={user.name}
+                            role={user.role}
+                            department={user.department}
+                            email={user.email}
+                            phone={user.phone}
+                        />
+                    )}
 
-                {/* ID Card */}
-                {user && (
-                    <IDCardPanel
-                        name={user.name}
-                        role={user.role}
-                        department={user.department}
-                        email={user.email}
-                        phone={user.phone}
-                    />
-                )}
+                    {children}
 
-                {/* Main Content (Tiles, Lists, etc.) */}
-                {children}
-
-                <View style={{ height: 100 }} />
-                {/* Bottom Padding for TabBar */}
-            </ScrollView>
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            )}
 
             {/* Side Menu */}
             <SideNavMenu

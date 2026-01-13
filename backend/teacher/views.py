@@ -4,7 +4,8 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from core.models import Teacher, Subject, Student, Attendance, Enrollment, TimeTable, Department, Period, TeacherSubject, Announcement
 from core.serializers import SubjectSerializer, TimeTableSerializer
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from django.db.models import Count, Q
 
 # --------------------------------------------------------------------------------
 # LOGIN
@@ -94,39 +95,60 @@ class MarkAttendanceView(APIView):
 
         # Prevent duplicate attendance for same period+subject+date
         processed_count = 0
-        skipped_count = 0
+        updated_count = 0
+
 
         for entry in attendance_data:
             student_id = entry["student_id"]
             attendance_status = entry["status"]
 
-            # Check duplicate
-            exists = Attendance.objects.filter(
+            # Upsert (Update or Create)
+            obj, created = Attendance.objects.update_or_create(
                 student_id=student_id,
                 subject_id=subject_id,
                 period_id=period_id,
-                date=date_str
-            ).exists()
-
-            if exists:
-                skipped_count += 1
-                continue  # skip duplicate
-
-            Attendance.objects.create(
-                student_id=student_id,
-                subject_id=subject_id,
-                period_id=period_id,
-                teacher_id=teacher_id,
                 date=date_str,
-                status=attendance_status
+                defaults={
+                    'status': attendance_status,
+                    'teacher_id': teacher_id # Update teacher if changed? Maybe.
+                }
             )
-            processed_count += 1
+
+            if created:
+                processed_count += 1
+            else:
+                updated_count += 1
 
         return Response({
             "message": "Attendance process completed",
             "saved": processed_count,
-            "skipped": skipped_count
+            "updated": updated_count
         }, status=status.HTTP_200_OK)
+
+
+class GetAttendanceView(APIView):
+    def get(self, request):
+        subject_id = request.GET.get('subject_id')
+        period_id = request.GET.get('period_id')
+        date_str = request.GET.get('date')
+
+        if not all([subject_id, period_id, date_str]):
+            return Response({"error": "Missing params"}, status=status.HTTP_400_BAD_REQUEST)
+
+        attendance = Attendance.objects.filter(
+            subject_id=subject_id,
+            period_id=period_id,
+            date=date_str
+        )
+
+        data = [
+            {
+                "student_id": a.student.id,
+                "status": a.status
+            }
+            for a in attendance
+        ]
+        return Response(data)
 
 class TeacherTodayTimetableView(APIView):
     def get(self, request, teacher_id):
@@ -273,7 +295,8 @@ class HODTeacherListView(APIView):
             {
                 "id": t.id,
                 "name": t.name,
-                "email": t.email
+                "email": t.email,
+                "subjects_count": t.teachersubject_set.count() # Count assigned subjects
             }
             for t in teachers
         ]
@@ -425,13 +448,26 @@ class HODDashboardView(APIView):
         attendance_percent = round((present_slots / total_slots * 100), 1) if total_slots > 0 else 0
 
         # 3. Low Attendance Students (Bottom 5 < 75%)
-        # This is expensive to calculate on fly without aggregation. 
-        # For MVP, let's just fetch random 5 or skip if too complex.
-        # Let's try a simple heuristic or leave empty for now to save DB load, 
-        # or just fetch 5 students and calc their aggregate. 
-        # A real implementation needs a dedicated MonthlyAttendance summary table.
-        # We will mock this or provide a placeholder.
-        low_attendance_list = [] # Placeholder for performance
+        # Fetch all students and calc their aggregate (Simplified for MVP)
+        students = Student.objects.filter(department=department)
+        low_attendance_list = []
+        
+        for stud in students:
+            # Check last 30 days attendance
+            s_recs = Attendance.objects.filter(student=stud)
+            s_total = s_recs.count()
+            s_present = s_recs.filter(status='P').count()
+            s_pct = round((s_present / s_total * 100), 1) if s_total > 0 else 0
+            
+            if s_pct < 75 and s_total > 0:
+                low_attendance_list.append({
+                    "name": stud.name,
+                    "attendance": s_pct
+                })
+        
+        # Sort and take top 5 worst
+        low_attendance_list.sort(key=lambda x: x['attendance'])
+        low_attendance_list = low_attendance_list[:5]
 
         # 4. Announcements
         announcements = Announcement.objects.filter(
@@ -462,3 +498,141 @@ class HODDashboardView(APIView):
             "low_attendance": low_attendance_list,
             "announcements": ann_data
         })
+
+class HODAttendanceStatsView(APIView):
+    def get(self, request, dept_id):
+        # 1. Overall Dept Attendance (Last 30 days)
+        today = date.today()
+        month_ago = today - timedelta(days=30)
+        
+        # All attendance records for this dept in last 30 days
+        recs = Attendance.objects.filter(
+            student__department_id=dept_id,
+            date__gte=month_ago
+        )
+        
+        total = recs.count()
+        present = recs.filter(status='P').count()
+        overall_pct = round((present / total * 100), 1) if total > 0 else 0
+        
+        # 2. Subject-wise Attendance
+        subject_stats = (
+            recs.values('subject__name')
+            .annotate(
+                total=Count('id'),
+                present=Count('id', filter=Q(status='P'))
+            )
+            .order_by('subject__name')
+        )
+        
+        subjects_data = []
+        for s in subject_stats:
+            p = round((s['present'] / s['total'] * 100), 1) if s['total'] > 0 else 0
+            subjects_data.append({
+                "subject": s['subject__name'],
+                "percentage": p
+            })
+            
+        # 3. Low Attendance Students (Below 75%)
+        students = Student.objects.filter(department_id=dept_id)
+        low_attendance = []
+        
+        for stud in students:
+            s_recs = Attendance.objects.filter(student=stud)
+            s_total = s_recs.count()
+            s_present = s_recs.filter(status='P').count()
+            s_pct = round((s_present / s_total * 100), 1) if s_total > 0 else 0
+            
+            if s_pct < 75 and s_total > 0:
+                low_attendance.append({
+                    "id": stud.id,
+                    "name": stud.name,
+                    "reg_no": stud.register_number,
+                    "percentage": s_pct,
+                    "semester": stud.semester
+                })
+        
+        low_attendance.sort(key=lambda x: x['percentage'])
+        
+        return Response({
+            "overall_percentage": overall_pct,
+            "subject_breakdown": subjects_data,
+            "low_attendance_students": low_attendance
+        })
+
+class HODTimetableGetView(APIView):
+    def get(self, request, dept_id):
+        entries = TimeTable.objects.filter(department_id=dept_id).select_related('subject', 'teacher', 'period')
+        
+        data = []
+        for e in entries:
+            data.append({
+                "id": e.id,
+                "day": e.day,
+                "period": e.period.number if e.period else 0,
+                "subject": e.subject.name,
+                "subject_id": e.subject.id,
+                "teacher": e.teacher.name if e.teacher else "Unassigned",
+                "teacher_id": e.teacher.id if e.teacher else None,
+                "semester": e.semester
+            })
+            
+        return Response(data)
+
+class HODInternalMarksView(APIView):
+    def get(self, request, dept_id):
+        from core.models import InternalMark
+        
+        subjects = Subject.objects.filter(department_id=dept_id).order_by('semester', 'name')
+        
+        data = []
+        for sub in subjects:
+            marks = InternalMark.objects.filter(subject=sub)
+            count = marks.count()
+            
+            status_text = "Pending"
+            if count > 0:
+                if marks.filter(is_approved=True).exists():
+                     if marks.filter(is_approved=False).count() == 0:
+                         status_text = "Approved"
+                     else:
+                         status_text = "Partial Approval"
+                elif marks.filter(is_submitted=True).exists():
+                     status_text = "Submitted"
+                else:
+                     status_text = "Draft"
+            
+            teacher_names = [ts.teacher.name for ts in TeacherSubject.objects.filter(subject=sub)]
+            teacher_str = ", ".join(teacher_names) if teacher_names else "Unassigned"
+            
+            data.append({
+                "subject_id": sub.id,
+                "subject_name": sub.name,
+                "code": sub.code,
+                "semester": sub.semester,
+                "teacher": teacher_str,
+                "status": status_text,
+                "student_count": count
+            })
+            
+        return Response(data)
+    
+    def post(self, request):
+        from core.models import InternalMark
+        subject_id = request.data.get('subject_id')
+        action = request.data.get('action') # 'APPROVE' or 'RETURN'
+        
+        if not subject_id or not action:
+             return Response({"error": "Missing params"}, status=status.HTTP_400_BAD_REQUEST)
+             
+        marks = InternalMark.objects.filter(subject_id=subject_id)
+        
+        if action == 'APPROVE':
+            marks.update(is_approved=True, is_submitted=True, is_draft=False)
+            return Response({"message": "Marks Approved & Locked"})
+            
+        elif action == 'RETURN':
+            marks.update(is_approved=False, is_submitted=False, is_draft=True)
+            return Response({"message": "Marks Returned to Teacher"})
+            
+        return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)

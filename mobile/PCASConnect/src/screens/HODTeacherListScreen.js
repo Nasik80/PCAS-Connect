@@ -33,6 +33,7 @@ const HODTeacherListScreen = () => {
             <View style={styles.info}>
                 <Text style={styles.name}>{item.name}</Text>
                 <Text style={styles.details}>{item.email}</Text>
+                <Text style={styles.subDetails}>Subjects: {item.subjects_count}</Text>
             </View>
         </View>
     );
@@ -58,7 +59,8 @@ const styles = StyleSheet.create({
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e0e0e0', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
     avatarText: { fontSize: 18, fontWeight: 'bold', color: '#6200ea' },
     name: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-    details: { color: '#666', fontSize: 12 }
+    details: { color: '#666', fontSize: 12 },
+    subDetails: { color: '#6200ea', fontSize: 12, marginTop: 4, fontWeight: '500' }
 });
 
 export default HODTeacherListScreen;

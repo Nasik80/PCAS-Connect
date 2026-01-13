@@ -149,6 +149,12 @@ const HODDashboardScreen = ({ navigation }) => {
                     color="#F59E0B"
                     onPress={() => navigation.navigate('HODAnnouncement')}
                 />
+                <QuickAction
+                    icon={<ClipboardList color="white" size={24} />}
+                    label="Internal Marks"
+                    color="#10B981"
+                    onPress={() => navigation.navigate('HODInternalMarks')}
+                />
             </View>
 
             {/* Low Attendance */}

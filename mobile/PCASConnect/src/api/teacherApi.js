@@ -2,7 +2,9 @@ import axios from 'axios';
 import { Alert } from 'react-native';
 
 // UPDATED IP ADDRESS - ENSURE THIS MATCHES YOUR TERMINAL
-const BASE_URL = "http://10.219.6.134:8000";
+import { API_BASE_URL } from '../config';
+
+const BASE_URL = API_BASE_URL;
 
 // --- TEACHER ENDPOINTS ---
 

@@ -92,14 +92,7 @@ const RoleSelectScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('TeacherLogin')}
             />
 
-            <RoleCard
-              title="Administrator"
-              subtitle="System management & reports"
-              icon={<ShieldCheck />}
-              color={colors.accent}
-              delay={600}
-              onPress={() => navigation.navigate('AdminLogin')}
-            />
+
           </View>
 
           <View style={styles.footer}>

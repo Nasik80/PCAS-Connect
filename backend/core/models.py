@@ -197,6 +197,67 @@ class Teacher(models.Model):
     def __str__(self):
         return self.name
 
+    def subjects(self):
+        return [ts.subject for ts in self.teachersubject_set.all()]
+
+    def students_for_subject(self, subject):
+        from core.models import Enrollment
+        return [e.student for e in Enrollment.objects.filter(subject=subject)]
+
+    def get_today_periods(self):
+        from datetime import datetime, date
+        from core.models import TimeTable, Attendance
+
+        today = datetime.now().strftime("%a").upper()
+        today_date = date.today()
+
+        periods = TimeTable.objects.filter(teacher=self, day=today)
+
+        result = []
+        for p in periods:
+            attendance_done = Attendance.objects.filter(
+                teacher=self,
+                period=p.period,
+                date=today_date,
+                subject=p.subject
+            ).exists()
+
+            result.append({
+                "period_number": p.period.number,
+                "subject": p.subject.name,
+                "attendance_done": attendance_done
+            })
+        return result
+
+    def get_monthly_summary(self, year, month):
+        from core.models import Attendance
+        from django.db.models import Count
+
+        records = Attendance.objects.filter(
+            teacher=self,
+            date__year=year,
+            date__month=month
+        )
+
+        total_classes_taken = records.values('date', 'period').distinct().count()
+        days_taught = records.dates('date', 'day')
+
+        subject_summary = records.values('subject__name').annotate(count=Count('id'))
+
+        subjects = [
+            {
+                "subject": s['subject__name'],
+                "classes_taken": s['count']
+            }
+            for s in subject_summary
+        ]
+
+        return {
+            "total_classes_taken": total_classes_taken,
+            "subject_breakdown": subjects,
+            "days_taught": list(days_taught)
+        }
+
 class Announcement(models.Model):
     AUDIENCE_CHOICES = [
         ('ALL', 'Entire College'),
@@ -217,86 +278,7 @@ class Announcement(models.Model):
         return self.title
     
 
-    # 🔥 Get all subjects handled by this teacher
-    def subjects(self):
-        return [ts.subject for ts in self.teachersubject_set.all()]
 
-    # 🔥 Get all students enrolled in the teacher's subjects
-    def students_for_subject(self, subject):
-        return [e.student for e in Enrollment.objects.filter(subject=subject)]
-    
-    def get_today_periods(self):
-      from datetime import datetime, date
-      from core.models import TimeTable, Attendance
-
-      today = datetime.now().strftime("%a").upper()
-      today_date = date.today()
-
-    # Get today's timetable entries for this teacher
-      periods = TimeTable.objects.filter(
-        teacher=self,
-        day=today
-     )
-
-      result = []
-      for p in periods:
-        # Check if attendance exists for this period already
-        attendance_done = Attendance.objects.filter(
-            teacher=self,
-            period=p.period,
-            date=today_date,
-            subject=p.subject
-        ).exists()
-
-        result.append({
-            "period_number": p.period.number,
-            "subject": p.subject.name,
-            "attendance_done": attendance_done
-        })
-
-      return result
-
-    def get_monthly_summary(self, year, month):
-      from core.models import Attendance
-      from django.db.models import Count
-
-    # All attendance records marked by this teacher in the month
-      records = Attendance.objects.filter(
-        teacher=self,
-        date__year=year,
-        date__month=month
-      )
-
-      total_classes_taken = records.count()
-
-    # Subject-wise summary
-      subject_summary = (
-        records.values('subject__name')
-        .annotate(count=Count('id'))
-        .order_by('subject__name')
-      )
-
-    # Dates teacher taught
-      days_taught = (
-        records.values_list('date', flat=True)
-        .distinct()
-        .order_by('date')
-      )
-
-    # Format subject data
-      subjects = [
-        {
-            "subject": s['subject__name'],
-            "classes_taken": s['count']
-        }
-        for s in subject_summary
-      ]
-
-      return {
-        "total_classes_taken": total_classes_taken,
-        "subject_breakdown": subjects,
-        "days_taught": list(days_taught)
- }
 
 class TeacherSubject(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
@@ -378,3 +360,30 @@ class TimeTable(models.Model):
 
     def __str__(self):
         return f"{self.department.code} Sem {self.semester} - {self.get_day_display()} P{self.period.number}"
+
+# ------------------------
+# Internal Marks
+# ------------------------
+class InternalMark(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    
+    test_1 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    test_2 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    assignment = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    attendance_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    total = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # Workflow Status
+    is_draft = models.BooleanField(default=True)
+    is_submitted = models.BooleanField(default=False) # Teacher submitted
+    is_approved = models.BooleanField(default=False)  # HOD approved (Locked)
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'subject')
+
+    def __str__(self):
+        return f"{self.student.name} - {self.subject.code} ({self.total})"

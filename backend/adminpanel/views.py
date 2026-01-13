@@ -181,6 +181,8 @@ class ExportSemesterAttendanceExcelView(APIView):
 class SemesterSubjectsView(APIView):
     def get(self, request, department_id, semester):
         subjects = Subject.objects.filter(department_id=department_id, semester=semester)
+        serializer = SubjectSerializer(subjects, many=True)
+        return Response(serializer.data)
 
 class AddStudentView(APIView):
     def post(self, request):
