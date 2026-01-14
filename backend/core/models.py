@@ -204,30 +204,39 @@ class Teacher(models.Model):
         from core.models import Enrollment
         return [e.student for e in Enrollment.objects.filter(subject=subject)]
 
-    def get_today_periods(self):
-        from datetime import datetime, date
+    def get_periods_for_date(self, target_date):
+        from datetime import datetime
         from core.models import TimeTable, Attendance
 
-        today = datetime.now().strftime("%a").upper()
-        today_date = date.today()
+        day_name = target_date.strftime("%a").upper()
+        
+        # Map Sunday to None or handle it
+        if day_name == 'SUN':
+             return []
 
-        periods = TimeTable.objects.filter(teacher=self, day=today)
+        periods = TimeTable.objects.filter(teacher=self, day=day_name)
 
         result = []
         for p in periods:
             attendance_done = Attendance.objects.filter(
                 teacher=self,
                 period=p.period,
-                date=today_date,
+                date=target_date,
                 subject=p.subject
             ).exists()
 
             result.append({
                 "period_number": p.period.number,
                 "subject": p.subject.name,
+                "subject_id": p.subject.id,
+                "semester": p.semester,
                 "attendance_done": attendance_done
             })
         return result
+
+    def get_today_periods(self):
+        from datetime import date
+        return self.get_periods_for_date(date.today())
 
     def get_monthly_summary(self, year, month):
         from core.models import Attendance

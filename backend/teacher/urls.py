@@ -19,7 +19,10 @@ from .views import (
     GetAttendanceView,
     HODAttendanceStatsView,
     HODTimetableGetView,
-    HODInternalMarksView
+    HODInternalMarksView,
+    HODInternalMarksView,
+    TeacherScheduleView,
+    TeacherWeeklyTimetableView
 )
 
 urlpatterns = [
@@ -33,6 +36,8 @@ urlpatterns = [
     path('<int:teacher_id>/subjects/', TeacherSubjectsView.as_view(), name='teacher-subjects'),
     path('subject/<int:subject_id>/students/', StudentsInSubjectView.as_view(), name='students-in-subject'),
     path('attendance/mark/', MarkAttendanceView.as_view(), name='mark-attendance'),
+    path('schedule/<int:teacher_id>/', TeacherScheduleView.as_view(), name='teacher-schedule'),
+    path('timetable/weekly/<int:teacher_id>/', TeacherWeeklyTimetableView.as_view(), name='teacher-weekly-timetable'),
     path('attendance/get/', GetAttendanceView.as_view(), name='get-attendance'),
     path('<int:teacher_id>/timetable/today/', TeacherTodayTimetableView.as_view(), name='teacher-today-timetable'),
     path('<int:teacher_id>/today-status/', TeacherTodayStatusView.as_view(), name='teacher-today-status'),

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, SafeAreaView, Dimensions } from 'react-native';
 import { colors } from '../constants/colors';
-import { X, User, Bell, FileText, Settings, Key, LogOut } from 'lucide-react-native';
+import { X, User, Bell, FileText, Settings, Key, LogOut, Book, Home } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -32,9 +32,19 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout }) => {
 
                     <View style={styles.content}>
                         <MenuItem
+                            icon={<Home size={22} color="#555" />}
+                            label="Home"
+                            onPress={() => onNavigate('Home')}
+                        />
+                        <MenuItem
                             icon={<User size={22} color="#555" />}
                             label="Profile"
                             onPress={() => onNavigate('Profile')}
+                        />
+                        <MenuItem
+                            icon={<Book size={22} color="#555" />}
+                            label="My Subjects"
+                            onPress={() => onNavigate('Subjects')}
                         />
                         <MenuItem
                             icon={<Bell size={22} color="#555" />}

@@ -8,6 +8,7 @@ import TeacherSubjectsScreen from '../screens/TeacherSubjectsScreen';
 import TeacherAttendanceScreen from '../screens/TeacherAttendanceScreen';
 import TeacherTimetableScreen from '../screens/TeacherTimetableScreen';
 import TeacherProfileScreen from '../screens/TeacherProfileScreen';
+import TeacherInternalMarksScreen from '../screens/TeacherInternalMarksScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,10 +20,10 @@ const TeacherTabs = () => {
                 tabBarIcon: ({ focused, color, size }) => {
                     let iconName;
 
-                    if (route.name === 'Dashboard') {
+                    if (route.name === 'Home') {
                         iconName = focused ? 'speedometer' : 'speedometer-outline';
-                    } else if (route.name === 'Subjects') {
-                        iconName = focused ? 'book' : 'book-outline';
+                    } else if (route.name === 'Marks') {
+                        iconName = focused ? 'calculator' : 'calculator-outline';
                     } else if (route.name === 'Attendance') {
                         iconName = focused ? 'checkmark-done-circle' : 'checkmark-done-circle-outline';
                     } else if (route.name === 'Timetable') {
@@ -42,9 +43,9 @@ const TeacherTabs = () => {
                 }
             })}
         >
-            <Tab.Screen name="Dashboard" component={TeacherDashboardScreen} />
-            <Tab.Screen name="Subjects" component={TeacherSubjectsScreen} />
+            <Tab.Screen name="Home" component={TeacherDashboardScreen} />
             <Tab.Screen name="Attendance" component={TeacherAttendanceScreen} />
+            <Tab.Screen name="Marks" component={TeacherInternalMarksScreen} />
             <Tab.Screen name="Timetable" component={TeacherTimetableScreen} />
             <Tab.Screen name="Profile" component={TeacherProfileScreen} />
         </Tab.Navigator>

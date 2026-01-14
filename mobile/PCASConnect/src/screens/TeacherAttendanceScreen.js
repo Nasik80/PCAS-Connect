@@ -1,124 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal
+    View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Image
 } from 'react-native';
 import { colors } from '../constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { BASE_URL } from '../services/api';
-import { Calendar, Check, X, Search, ChevronDown } from 'lucide-react-native';
+import { Calendar, ChevronLeft, ChevronRight, Edit2, Save } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-const TeacherAttendanceScreen = () => {
+import DashboardLayout from '../components/DashboardLayout';
+
+const TeacherAttendanceScreen = ({ navigation }) => {
     // State
     const [loading, setLoading] = useState(false);
-    const [subjects, setSubjects] = useState([]);
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [students, setStudents] = useState([]);
-    const [attendance, setAttendance] = useState({}); // { studentId: 'P' | 'A' }
-
-    // Filters
     const [date, setDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
+    const [schedule, setSchedule] = useState([]);
     const [selectedPeriod, setSelectedPeriod] = useState(1);
+    const [currentClass, setCurrentClass] = useState(null);
 
-    // UI State
-    const [showSubjectModal, setShowSubjectModal] = useState(false);
+    const [students, setStudents] = useState([]);
+    const [attendance, setAttendance] = useState({});
+    const [isEditing, setIsEditing] = useState(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
 
+    // Fetch Schedule when Date changes
     useEffect(() => {
-        fetchSubjects();
-    }, []);
+        fetchSchedule();
+    }, [date]);
 
+    // Update Current Class when Schedule or Period changes
     useEffect(() => {
-        if (selectedSubject) {
-            fetchStudents(selectedSubject.subject_id);
+        if (schedule.length > 0) {
+            const found = schedule.find(p => p.period_number === selectedPeriod);
+            setCurrentClass(found || null);
+        } else {
+            setCurrentClass(null);
         }
-    }, [date, selectedPeriod]);
+    }, [selectedPeriod, schedule]);
 
-    const fetchSubjects = async () => {
+    // Fetch Students when Current Class changes
+    useEffect(() => {
+        if (currentClass) {
+            fetchStudentsAndAttendance();
+        } else {
+            setStudents([]);
+        }
+    }, [currentClass]);
+
+    const fetchSchedule = async () => {
         setLoading(true);
         try {
             const teacherId = await AsyncStorage.getItem('teacherId');
-            const res = await axios.get(`${BASE_URL}/api/teacher/${teacherId}/subjects/`);
-            setSubjects(res.data.subjects);
-
-            // Auto-select first subject if available
-            if (res.data.subjects.length > 0) {
-                setSelectedSubject(res.data.subjects[0]);
-                fetchStudents(res.data.subjects[0].subject_id);
-            }
+            const dateStr = date.toISOString().split('T')[0];
+            const res = await axios.get(`${BASE_URL}/api/teacher/schedule/${teacherId}/?date=${dateStr}`);
+            setSchedule(res.data);
         } catch (error) {
-            Alert.alert("Error", "Failed to lead subjects");
+            console.error(error);
+            Alert.alert("Error", "Failed to load schedule");
         } finally {
             setLoading(false);
+            setInitialLoadDone(true);
         }
     };
 
-    const fetchStudents = async (subjectId) => {
+    const fetchStudentsAndAttendance = async () => {
+        if (!currentClass) return;
         setLoading(true);
+        setIsEditing(false); // Reset edit mode on class switch
+
         try {
             // 1. Fetch Students
-            const res = await axios.get(`${BASE_URL}/api/teacher/subject/${subjectId}/students/`);
+            const res = await axios.get(`${BASE_URL}/api/teacher/subject/${currentClass.subject_id}/students/`);
             setStudents(res.data);
 
-            // 2. Fetch Existing Attendance (if any)
-            const dateStr = date.toISOString().split('T')[0];
-            const periodId = selectedPeriod;
+            // 2. Check if Attendance already done (from Schedule or explicitly fetch)
+            // The schedule endpoint already told us "attendance_done".
+            // If done, fetch existing records. If not, default to "P".
 
-            try {
+            if (currentClass.attendance_done) {
+                const dateStr = date.toISOString().split('T')[0];
                 const attRes = await axios.get(`${BASE_URL}/api/teacher/attendance/get/`, {
                     params: {
-                        subject_id: subjectId,
-                        period_id: periodId,
+                        subject_id: currentClass.subject_id,
+                        period_id: selectedPeriod,
                         date: dateStr
                     }
                 });
 
-                if (attRes.data && attRes.data.length > 0) {
-                    // Pre-fill existing
-                    const existingAtt = {};
-                    attRes.data.forEach(a => {
-                        existingAtt[a.student_id] = a.status;
-                    });
-                    setAttendance(existingAtt);
-                } else {
-                    // Default to Present
-                    const initialAttendance = {};
-                    res.data.forEach(s => {
-                        initialAttendance[s.id] = 'P';
-                    });
-                    setAttendance(initialAttendance);
-                }
-            } catch (err) {
-                // If fetch fails, default to Present
-                const initialAttendance = {};
-                res.data.forEach(s => {
-                    initialAttendance[s.id] = 'P';
-                });
-                setAttendance(initialAttendance);
+                const existingAtt = {};
+                attRes.data.forEach(a => existingAtt[a.student_id] = a.status);
+                setAttendance(existingAtt);
+            } else {
+                // Default Present
+                const initialAtt = {};
+                res.data.forEach(s => initialAtt[s.id] = 'P');
+                setAttendance(initialAtt);
             }
 
         } catch (error) {
-            console.error(error);
-            Alert.alert("Error", "Failed to load students");
+            Alert.alert("Error", "Failed to load class data");
         } finally {
             setLoading(false);
         }
     };
 
     const toggleAttendance = (studentId) => {
+        // Prevent editing if attendance done and not in edit mode
+        if (currentClass?.attendance_done && !isEditing) return;
+
         setAttendance(prev => ({
             ...prev,
             [studentId]: prev[studentId] === 'P' ? 'A' : 'P'
         }));
     };
 
-    const submitAttendance = async () => {
-        if (!selectedSubject) return;
+    const handleSave = async () => {
+        if (!currentClass) return;
 
         setLoading(true);
         try {
             const teacherId = await AsyncStorage.getItem('teacherId');
-
-            // Format for backend: List of { student_id, status }
             const attendanceList = Object.keys(attendance).map(sid => ({
                 student_id: sid,
                 status: attendance[sid]
@@ -126,236 +130,227 @@ const TeacherAttendanceScreen = () => {
 
             const payload = {
                 teacher_id: teacherId,
-                subject_id: selectedSubject.subject_id,
-                period_id: selectedPeriod, // This needs to match a real Period ID in backend ideally, but views.py takes raw ID. 
-                // Wait, views.py expects period_id. If backend uses Period model PK, we need to fetch Periods first.
-                // Assuming simple 1-5 integer for now based on typical setup, OR we need a period fetch. 
-                // Let's assume period_id corresponds to the Period Model PK.
-                // Usually Period 1 is ID 1. Let's hope. If not, we need a period selector API.
-                // Safe fix: Just send the integer number for now and let backend handle lookup if it expects an ID.
-                // Actually backend views.py uses: Attendance.objects.create(..., period_id=period_id)
-                // So it MUST be a valid Period FK ID.
-                // We should probably fetch periods or hardcode 1-5 if IDs are static 1-5.
-                // Let's assume IDs 1-6 exist.
+                subject_id: currentClass.subject_id,
+                period_id: selectedPeriod,
                 date: date.toISOString().split('T')[0],
                 attendance: attendanceList
             };
 
-            // Adjust period_id handling:
-            // Since we don't have a "Get Periods" API in the breakdown, I'll assume IDs 1-5 map to Periods 1-5.
-
             await axios.post(`${BASE_URL}/api/teacher/attendance/mark/`, payload);
-            Alert.alert("Success", "Attendance marked successfully!");
+
+            Alert.alert("Success", "Attendance Saved!");
+            setIsEditing(false);
+            fetchSchedule(); // Refresh schedule to update 'attendance_done' flag
 
         } catch (error) {
-            Alert.alert("Error", "Failed to submit attendance. (Duplicate or Network Error)");
+            Alert.alert("Error", "Failed to save.");
         } finally {
             setLoading(false);
         }
     };
 
-    const StatsHeader = () => {
-        const total = students.length;
-        const present = Object.values(attendance).filter(s => s === 'P').length;
-        const absent = total - present;
-
-        return (
-            <View style={styles.statsContainer}>
-                <View style={[styles.statBox, { backgroundColor: '#E0E7FF' }]}>
-                    <Text style={[styles.statNum, { color: '#4338CA' }]}>{total}</Text>
-                    <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={[styles.statBox, { backgroundColor: '#DCFCE7' }]}>
-                    <Text style={[styles.statNum, { color: '#15803D' }]}>{present}</Text>
-                    <Text style={styles.statLabel}>Present</Text>
-                </View>
-                <View style={[styles.statBox, { backgroundColor: '#FEE2E2' }]}>
-                    <Text style={[styles.statNum, { color: '#B91C1C' }]}>{absent}</Text>
-                    <Text style={styles.statLabel}>Absent</Text>
-                </View>
-            </View>
-        );
+    const handleLogout = async () => {
+        await AsyncStorage.clear();
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+        });
     };
 
+    const onChangeDate = (event, selectedDate) => {
+        setShowDatePicker(false);
+        if (selectedDate) setDate(selectedDate);
+    };
+
+    // Render Logic
+    const isReadOnly = currentClass?.attendance_done && !isEditing;
+
     return (
-        <View style={styles.container}>
-            {/* Header / Filter Section */}
-            <View style={styles.header}>
-                <Text style={styles.title}>Mark Attendance</Text>
+        <DashboardLayout
+            user={null}
+            disableScroll={true} // We have a FlatList inside
+            onNavigate={(screen) => {
+                if (screen === 'Home') {
+                    navigation.navigate('TeacherDashboard');
+                } else {
+                    navigation.navigate(screen);
+                }
+            }}
+            onLogout={handleLogout}
+        >
+            <View style={{ flex: 1 }}>
+                {/* Header Section */}
+                <View style={styles.header}>
+                    <View style={styles.headerTop}>
+                        <Text style={styles.title}>Mark Attendance</Text>
+                        {currentClass?.attendance_done && (
+                            <TouchableOpacity
+                                style={styles.editBtn}
+                                onPress={() => setIsEditing(true)}
+                                disabled={isEditing}
+                            >
+                                <Edit2 size={20} color={isEditing ? '#ccc' : colors.primary} />
+                                <Text style={[styles.editBtnText, isEditing && { color: '#ccc' }]}>Edit</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
 
-                {/* Subject Selector */}
-                <TouchableOpacity
-                    style={styles.selector}
-                    onPress={() => setShowSubjectModal(true)}
-                >
-                    <Text style={styles.selectorText}>
-                        {selectedSubject ? selectedSubject.name : "Select Subject"}
-                    </Text>
-                    <ChevronDown size={20} color="#666" />
-                </TouchableOpacity>
-
-                {/* Period Selector (Simple Horizontal Scroll) */}
-                <View style={styles.periodRow}>
-                    <Text style={styles.label}>Period:</Text>
-                    {[1, 2, 3, 4, 5, 6].map(p => (
-                        <TouchableOpacity
-                            key={p}
-                            style={[styles.periodBtn, selectedPeriod === p && styles.periodBtnActive]}
-                            onPress={() => setSelectedPeriod(p)}
-                        >
-                            <Text style={[styles.periodText, selectedPeriod === p && styles.periodTextActive]}>{p}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-
-            <StatsHeader />
-
-            {/* Student List */}
-            {loading ? (
-                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
-            ) : (
-                <FlatList
-                    data={students}
-                    keyExtractor={item => item.id.toString()}
-                    contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[
-                                styles.studentCard,
-                                attendance[item.id] === 'A' && styles.studentCardAbsent
-                            ]}
-                            onPress={() => toggleAttendance(item.id)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.studentInfo}>
-                                <Text style={styles.studentName}>{item.name}</Text>
-                                <Text style={styles.studentReg}>{item.register_number}</Text>
-                            </View>
-
-                            <View style={[
-                                styles.statusBadge,
-                                attendance[item.id] === 'P' ? styles.badgePresent : styles.badgeAbsent
-                            ]}>
-                                <Text style={[
-                                    styles.badgeText,
-                                    attendance[item.id] === 'P' ? styles.textPresent : styles.textAbsent
-                                ]}>
-                                    {attendance[item.id] === 'P' ? 'PRESENT' : 'ABSENT'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                />
-            )}
-
-            {/* Submit Button */}
-            {!loading && students.length > 0 && (
-                <View style={styles.footer}>
-                    <TouchableOpacity style={styles.submitBtn} onPress={submitAttendance}>
-                        <Text style={styles.submitBtnText}>Submit Attendance</Text>
+                    {/* Date Picker */}
+                    <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
+                        <Calendar size={20} color="#666" />
+                        <Text style={styles.dateText}>{date.toDateString()}</Text>
                     </TouchableOpacity>
-                </View>
-            )}
+                    {showDatePicker && (
+                        <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} />
+                    )}
 
-            {/* Subject Selection Modal */}
-            <Modal visible={showSubjectModal} animationType="slide" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Select Subject</Text>
-                        <FlatList
-                            data={subjects}
-                            keyExtractor={item => item.subject_id.toString()}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.modalItem}
-                                    onPress={() => {
-                                        setSelectedSubject(item);
-                                        fetchStudents(item.subject_id);
-                                        setShowSubjectModal(false);
-                                    }}
-                                >
-                                    <Text style={styles.modalItemText}>{item.name} ({item.code})</Text>
-                                    <Text style={styles.modalItemSub}>Sem {item.semester}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                        <TouchableOpacity style={styles.closeBtn} onPress={() => setShowSubjectModal(false)}>
-                            <Text style={styles.closeBtnText}>Cancel</Text>
-                        </TouchableOpacity>
+                    {/* Period Selector */}
+                    <View style={styles.periodRow}>
+                        <Text style={styles.label}>Period:</Text>
+                        {[1, 2, 3, 4, 5, 6].map(p => (
+                            <TouchableOpacity
+                                key={p}
+                                style={[styles.periodBtn, selectedPeriod === p && styles.periodBtnActive]}
+                                onPress={() => setSelectedPeriod(p)}
+                            >
+                                <Text style={[styles.periodText, selectedPeriod === p && styles.periodTextActive]}>{p}</Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
-            </Modal>
-        </View>
+
+                {/* Class Info Box */}
+                <View style={styles.infoBox}>
+                    {currentClass ? (
+                        <View>
+                            <Text style={styles.subTitle}>Subject</Text>
+                            <Text style={styles.subName}>{currentClass.subject}</Text>
+                            <View style={styles.badgeRow}>
+                                <View style={[styles.badge, styles.semBadge]}>
+                                    <Text style={styles.badgeText}>Semester {currentClass.semester}</Text>
+                                </View>
+                                {currentClass.attendance_done && (
+                                    <View style={[styles.badge, styles.doneBadge]}>
+                                        <Text style={[styles.badgeText, { color: '#15803D' }]}>Saved</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+                    ) : (
+                        <Text style={styles.noClassText}>No class assigned for Period {selectedPeriod}</Text>
+                    )}
+                </View>
+
+                {/* Student List */}
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                ) : (
+                    <FlatList
+                        data={students}
+                        keyExtractor={item => item.id.toString()}
+                        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+                        ListEmptyComponent={
+                            !loading && initialLoadDone && currentClass && <Text style={styles.emptyText}>No students found.</Text>
+                        }
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[
+                                    styles.studentCard,
+                                    attendance[item.id] === 'A' && styles.studentCardAbsent,
+                                    isReadOnly && { opacity: 0.8 }
+                                ]}
+                                onPress={() => toggleAttendance(item.id)}
+                                activeOpacity={isReadOnly ? 1 : 0.7}
+                                disabled={isReadOnly}
+                            >
+                                <View>
+                                    <Text style={styles.studentName}>{item.name}</Text>
+                                    <Text style={styles.studentReg}>{item.register_number}</Text>
+                                </View>
+
+                                <View style={[
+                                    styles.statusBadge,
+                                    attendance[item.id] === 'P' ? styles.badgePresent : styles.badgeAbsent
+                                ]}>
+                                    <Text style={[
+                                        styles.statusText,
+                                        attendance[item.id] === 'P' ? styles.textPresent : styles.textAbsent
+                                    ]}>
+                                        {attendance[item.id] === 'P' ? 'P' : 'A'}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
+                    />
+                )}
+
+                {/* Save Button */}
+                {currentClass && (!currentClass.attendance_done || isEditing) && (
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={styles.submitBtn} onPress={handleSave}>
+                            <Save size={20} color="white" style={{ marginRight: 8 }} />
+                            <Text style={styles.submitBtnText}>Save Attendance</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+        </DashboardLayout>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFC' },
     header: { padding: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#eee' },
-    title: { fontSize: 22, fontWeight: 'bold', color: '#1E293B', marginBottom: 15 },
+    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    title: { fontSize: 22, fontWeight: 'bold', color: '#1E293B' },
 
-    selector: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        padding: 12, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, marginBottom: 15
+    editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', padding: 8, borderRadius: 8 },
+    editBtnText: { marginLeft: 5, color: colors.primary, fontWeight: '600' },
+
+    dateSelector: {
+        flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderColor: '#CBD5E1',
+        borderRadius: 12, marginBottom: 15
     },
-    selectorText: { fontSize: 16, color: '#334155', fontWeight: '500' },
+    dateText: { marginLeft: 10, fontSize: 16, color: '#334155' },
 
     periodRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     label: { fontSize: 14, color: '#64748B', fontWeight: '600' },
-    periodBtn: {
-        width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9',
-        justifyContent: 'center', alignItems: 'center'
-    },
+    periodBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
     periodBtnActive: { backgroundColor: colors.primary },
     periodText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
     periodTextActive: { color: 'white' },
 
-    statsContainer: {
-        flexDirection: 'row', padding: 16, gap: 12
-    },
-    statBox: {
-        flex: 1, padding: 12, borderRadius: 12, alignItems: 'center'
-    },
-    statNum: { fontSize: 18, fontWeight: 'bold' },
-    statLabel: { fontSize: 12, color: '#4B5563', marginTop: 2 },
+    infoBox: { padding: 20, backgroundColor: '#EFF6FF' },
+    subTitle: { fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'uppercase' },
+    subName: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginVertical: 4 },
+    badgeRow: { flexDirection: 'row', gap: 10, marginTop: 5 },
+    badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+    semBadge: { backgroundColor: '#DBEAFE' },
+    doneBadge: { backgroundColor: '#DCFCE7' },
+    badgeText: { fontSize: 12, fontWeight: '600', color: '#1E40AF' },
+
+    noClassText: { fontSize: 16, color: '#64748B', textAlign: 'center', fontStyle: 'italic', marginTop: 10 },
+    emptyText: { textAlign: 'center', marginTop: 20, color: '#666' },
 
     studentCard: {
         backgroundColor: 'white', padding: 16, borderRadius: 16, marginBottom: 10,
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2,
-        borderLeftWidth: 4, borderLeftColor: '#10B981'
+        elevation: 2, borderLeftWidth: 4, borderLeftColor: '#10B981'
     },
-    studentCardAbsent: {
-        borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2'
-    },
+    studentCardAbsent: { borderLeftColor: '#EF4444', backgroundColor: '#FEF2F2' },
     studentName: { fontSize: 16, fontWeight: '600', color: '#1E293B' },
     studentReg: { fontSize: 13, color: '#64748B', marginTop: 2 },
 
-    statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+    statusBadge: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: '#DCFCE7' },
     badgePresent: { backgroundColor: '#DCFCE7' },
     badgeAbsent: { backgroundColor: '#FEE2E2' },
-    badgeText: { fontSize: 12, fontWeight: 'bold' },
+    statusText: { fontWeight: 'bold' },
     textPresent: { color: '#15803D' },
     textAbsent: { color: '#B91C1C' },
 
-    footer: {
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#eee'
-    },
-    submitBtn: {
-        backgroundColor: colors.primary, padding: 16, borderRadius: 14, alignItems: 'center'
-    },
-    submitBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '60%' },
-    modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
-    modalItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-    modalItemText: { fontSize: 16, fontWeight: '600', color: '#333' },
-    modalItemSub: { fontSize: 13, color: '#888', marginTop: 2 },
-    closeBtn: { marginTop: 20, padding: 15, alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12 },
-    closeBtnText: { color: '#334155', fontWeight: 'bold' },
+    footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#eee' },
+    submitBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+    submitBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' }
 });
 
 export default TeacherAttendanceScreen;

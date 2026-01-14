@@ -12,6 +12,7 @@ import SplashScreen from '../screens/SplashScreen';
 import RoleSelectScreen from '../screens/RoleSelectScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
 import TeacherLoginScreen from '../screens/TeacherLoginScreen';
+import TeacherSubjectsScreen from '../screens/TeacherSubjectsScreen';
 
 
 
@@ -40,6 +41,7 @@ const AppNavigator = () => {
 
         <Stack.Screen name="StudentDashboard" component={StudentTabs} />
         <Stack.Screen name="TeacherDashboard" component={TeacherTabs} />
+        <Stack.Screen name="Subjects" component={TeacherSubjectsScreen} />
 
 
 
