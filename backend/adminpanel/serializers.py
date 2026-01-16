@@ -2,9 +2,23 @@ from rest_framework import serializers
 from core.models import Department, Student, Teacher, Subject
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    hod_name = serializers.SerializerMethodField()
+    hod_id = serializers.SerializerMethodField()
+
     class Meta:
         model = Department
-        fields = ['id', 'name', 'code']
+        fields = ['id', 'name', 'code', 'hod_name', 'hod_id']
+
+    def get_hod_name(self, obj):
+        # Find teacher with is_hod=True in this department
+        # We need to import Teacher safely or use reverse lookup if defined
+        # obj.teacher_set is the reverse relation from ForeignKey in Teacher
+        hod = obj.teacher_set.filter(is_hod=True).first()
+        return hod.name if hod else "Not Assigned"
+
+    def get_hod_id(self, obj):
+        hod = obj.teacher_set.filter(is_hod=True).first()
+        return hod.id if hod else None
 
 class StudentCreateSerializer(serializers.ModelSerializer):
     class Meta:

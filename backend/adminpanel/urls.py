@@ -18,7 +18,12 @@ from .views import (
     AdminStudentPasswordResetView,
     AdminTeacherListView,
     AdminTeacherDetailView,
-    AdminTeacherPasswordResetView
+    AdminTeacherDetailView,
+    AdminTeacherPasswordResetView,
+    AdminTeacherDetailView,
+    AdminTeacherPasswordResetView,
+    AssignHODView,
+    AdminTimetableListView
 )
 
 urlpatterns = [
@@ -37,6 +42,8 @@ urlpatterns = [
     path('add/student/', AddStudentView.as_view(), name='add-student'),
     path('add/teacher/', AddTeacherView.as_view(), name='add-teacher'),
     path('add/department/', AddDepartmentView.as_view(), name='add-department'),
+    path('assign/hod/', AssignHODView.as_view(), name='assign-hod'),
+    path('timetable/list/', AdminTimetableListView.as_view(), name='admin-timetable-list'),
     path('add/subject/', AddSubjectView.as_view(), name='add-subject'),
     
     # Promotion

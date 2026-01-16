@@ -1,0 +1,66 @@
+PCAS-Connect: Project Abstract
+
+1. Introduction
+
+PCAS-Connect is a comprehensive College Management System designed to digitize and streamline academic and administrative processes. The system bridges the gap between students, teachers, Heads of Departments (HODs), and administrators through a unified digital platform. It focuses on real-time attendance tracking, academic performance monitoring (Internal Marks), class scheduling, and effective communication.
+
+2. System Architecture
+
+The project follows a modern, scalable client-server architecture:
+
+2.1 Backend
+
+Built with Django and Django REST Framework (DRF), serving as the central source of truth. It handles business logic, database interactions (SQLite/PostgreSQL), and authentication.
+
+2.2 Mobile Application
+
+A Cross-platform React Native (Expo) application providing role-specific interfaces for Students, Teachers, and HODs.
+
+2.3 Admin Web Portal
+
+A React (Vite)-based web application designed for high-level administrative tasks such as batch management, user onboarding, and system configuration.
+
+3. Key Functional Modules
+
+3.1 User Roles & Management
+
+Student: Access to personal attendance stats, timetable, internal marks, and announcements.
+
+Teacher: Capabilities to mark attendance, enter internal marks, view schedules, and send announcements.
+
+HOD (Head of Dept): Oversight of department activities, subject allocation, timetable management, and approval of internal marks.
+
+Administrator: Full system control, including promotion logic, user CRUD operations, and academic structure setup.
+
+3.2 Academic Structure
+
+The system supports a flexible academic structure including Departments, Batches, and Semesters. It implements the Choice Based Credit System (CBCS) with support for various subject types (Core, Elective, Skill Enhancement, etc.).
+
+3.3 Attendance System
+
+A robust attendance tracking system that allows teachers to mark attendance period-wise. Students can view real-time calculations of their attendance percentage (Daily, Monthly, and Overall). HODs and Admins have access to 'Class Monitor' tools for aggregate views.
+
+3.4 Internal Marks & Assessment
+
+Digital entry and management of internal assessment scores (Test 1, Test 2, Assignment, Attendance Score). Includes an approval workflow where marks entered by teachers must be verified/approved by the HOD.
+
+3.5 Timetable Management
+
+Dynamic timetable creation and viewing. Teachers and Students see their personalized schedules automatically based on subject enrollment and allocation.
+
+4. Future Enhancements
+
+Push Notifications: Real-time alerts for absence, new announcements, and mark publications.
+
+Digital ID Cards: Integrated identity verification within the mobile app.
+
+Leave Management System: Workflow for students/teachers to apply for leave and get approval.
+
+Fee Payment Gateway: Integration for semester fee payments.
+
+Placement Cell: dedicated module for placement drives and tracking.
+
+5. Conclusion
+
+PCAS-Connect represents a significant step towards the digital transformation of the institution, reducing paperwork, minimizing errors, and providing transparent, instant access to academic data for all stakeholders.
+

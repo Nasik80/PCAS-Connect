@@ -208,6 +208,64 @@ class AddTeacherView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class AdminTimetableListView(APIView):
+    def get(self, request):
+        department_id = request.GET.get('department_id')
+        semester = request.GET.get('semester')
+
+        if not department_id:
+             return Response({"error": "Department ID required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        from core.models import TimeTable
+        entries = TimeTable.objects.filter(department_id=department_id)
+        
+        if semester:
+            entries = entries.filter(semester=semester)
+            
+        entries = entries.select_related('subject', 'teacher', 'period')
+        
+        data = []
+        for e in entries:
+            data.append({
+                "id": e.id,
+                "day": e.day,
+                "period": e.period.number if e.period else 0,
+                "subject": e.subject.name,
+                "subject_code": e.subject.code,
+                "teacher": e.teacher.name if e.teacher else "Unassigned",
+                "semester": e.semester
+            })
+            
+        return Response(data)
+
+class AssignHODView(APIView):
+    def post(self, request):
+        department_id = request.data.get('department_id')
+        teacher_id = request.data.get('teacher_id')
+
+        try:
+            department = Department.objects.get(id=department_id)
+            new_hod = Teacher.objects.get(id=teacher_id, department=department)
+
+            # 1. Remove existing HOD(s)
+            current_hods = Teacher.objects.filter(department=department, is_hod=True)
+            for t in current_hods:
+                t.is_hod = False
+                t.role = 'TEACHER'
+                t.save()
+
+            # 2. Assign new HOD
+            new_hod.is_hod = True
+            new_hod.role = 'HOD'
+            new_hod.save()
+
+            return Response({"message": f"{new_hod.name} is now HOD of {department.name}"})
+
+        except Department.DoesNotExist:
+            return Response({"error": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Teacher.DoesNotExist:
+             return Response({"error": "Teacher not found or does not belong to this department"}, status=status.HTTP_404_NOT_FOUND)
+
 class AddDepartmentView(APIView):
     def post(self, request):
         serializer = DepartmentSerializer(data=request.data)

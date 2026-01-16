@@ -5,6 +5,8 @@ import Departments from './pages/Departments';
 import Teachers from './pages/Teachers';
 import Syllabus from './pages/Syllabus';
 import Students from './pages/Students';
+import Timetable from './pages/Timetable';
+import Attendance from './pages/Attendance';
 import Placeholder from './pages/Placeholder';
 
 function App() {
@@ -67,7 +69,7 @@ function App() {
           path="/timetable"
           element={
             <ProtectedRoute>
-              <Placeholder title="Timetable Management" />
+              <Timetable />
             </ProtectedRoute>
           }
         />
@@ -75,7 +77,7 @@ function App() {
           path="/attendance"
           element={
             <ProtectedRoute>
-              <Placeholder title="Attendance Configuration" />
+              <Attendance />
             </ProtectedRoute>
           }
         />

@@ -60,7 +60,11 @@ const Students = () => {
             setFormData({ name: '', email: '', register_number: '', department: '', semester: '1', dob: '' });
             fetchStudents();
         } catch (error) {
-            alert("Failed to add student. Check register number or email duplicate.");
+            console.error(error);
+            const msg = error.response?.data?.register_number ? "Register Number already exists" :
+                error.response?.data?.email ? "Email already exists" :
+                    "Failed to add student. Please check inputs.";
+            alert(msg);
         } finally {
             setSubmitting(false);
         }
