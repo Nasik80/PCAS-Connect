@@ -678,3 +678,97 @@ class TeacherWeeklyTimetableView(APIView):
             })
             
         return Response(data)
+class TeacherInternalMarkEntryView(APIView):
+    def get(self, request, subject_id):
+        try:
+            subject = Subject.objects.get(id=subject_id)
+        except Subject.DoesNotExist:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        enrollments = Enrollment.objects.filter(subject=subject).select_related('student')
+        
+        from core.models import InternalMark
+        
+        data = []
+        for enroll in enrollments:
+            student = enroll.student
+            
+            # Get or Init Mark
+            mark_obj = InternalMark.objects.filter(student=student, subject=subject).first()
+            
+            if mark_obj:
+                entry = {
+                    "student_id": student.id,
+                    "name": student.name,
+                    "reg_no": student.register_number,
+                    "test_1_scored": mark_obj.test_1_scored,
+                    "test_1_total": mark_obj.test_1_total,
+                    "test_2_scored": mark_obj.test_2_scored,
+                    "test_2_total": mark_obj.test_2_total,
+                    "total": mark_obj.total,
+                    "is_submitted": mark_obj.is_submitted,
+                    "is_approved": mark_obj.is_approved
+                }
+            else:
+                entry = {
+                    "student_id": student.id,
+                    "name": student.name,
+                    "reg_no": student.register_number,
+                    "test_1_scored": 0,
+                    "test_1_total": 50, 
+                    "test_2_scored": 0,
+                    "test_2_total": 50,
+                    "total": 0,
+                    "is_submitted": False,
+                    "is_approved": False
+                }
+            data.append(entry)
+            
+        return Response({
+            "subject": subject.name,
+            "code": subject.code,
+            "marks": data
+        })
+
+    def post(self, request, subject_id):
+        marks_data = request.data.get('marks') 
+        
+        if not marks_data:
+             return Response({"error": "No data provided"}, status=status.HTTP_400_BAD_REQUEST)
+             
+        try:
+            subject = Subject.objects.get(id=subject_id)
+        except Subject.DoesNotExist:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        from core.models import InternalMark
+        
+        updated_count = 0
+        
+        for item in marks_data:
+            student_id = item.get('student_id')
+            
+            t1_s = float(item.get('test_1_scored', 0))
+            t1_t = float(item.get('test_1_total', 50))
+            
+            t2_s = float(item.get('test_2_scored', 0))
+            t2_t = float(item.get('test_2_total', 50))
+            
+            # Total Calculation: Sum of scored marks
+            total = t1_s + t2_s
+            
+            obj, created = InternalMark.objects.update_or_create(
+                student_id=student_id,
+                subject=subject,
+                defaults={
+                    'test_1_scored': t1_s,
+                    'test_1_total': t1_t,
+                    'test_2_scored': t2_s,
+                    'test_2_total': t2_t,
+                    'total': total,
+                    'is_draft': True 
+                }
+            )
+            updated_count += 1
+            
+        return Response({"message": "Marks updated successfully", "count": updated_count})

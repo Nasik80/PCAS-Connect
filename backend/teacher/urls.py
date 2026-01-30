@@ -22,7 +22,8 @@ from .views import (
     HODInternalMarksView,
     HODInternalMarksView,
     TeacherScheduleView,
-    TeacherWeeklyTimetableView
+    TeacherWeeklyTimetableView,
+    TeacherInternalMarkEntryView
 )
 
 urlpatterns = [
@@ -42,6 +43,7 @@ urlpatterns = [
     path('<int:teacher_id>/timetable/today/', TeacherTodayTimetableView.as_view(), name='teacher-today-timetable'),
     path('<int:teacher_id>/today-status/', TeacherTodayStatusView.as_view(), name='teacher-today-status'),
     path('<int:teacher_id>/attendance/monthly/<int:year>/<int:month>/', TeacherMonthlySummaryView.as_view(), name='teacher-monthly-summary'),
+    path('internal-marks/<int:subject_id>/', TeacherInternalMarkEntryView.as_view(), name='teacher-internal-marks-entry'),
 
     # HOD Role
     path('hod/stats/<int:teacher_id>/', HODDashboardStatsView.as_view(), name='hod-stats-old'), # Renamed old one to avoid conflict if needed, or just keep

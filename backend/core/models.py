@@ -377,10 +377,11 @@ class InternalMark(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     
-    test_1 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    test_2 = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    assignment = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    attendance_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    test_1_scored = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    test_1_total = models.DecimalField(max_digits=5, decimal_places=2, default=50) # Max marks for Test 1
+    
+    test_2_scored = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    test_2_total = models.DecimalField(max_digits=5, decimal_places=2, default=50) # Max marks for Test 2
     
     total = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     

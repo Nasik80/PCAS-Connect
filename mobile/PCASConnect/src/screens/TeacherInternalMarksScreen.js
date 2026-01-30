@@ -50,9 +50,7 @@ const TeacherInternalMarksScreen = ({ navigation }) => {
             style={styles.card}
             activeOpacity={0.7}
             onPress={() => {
-                // Future: Navigate to Marks Entry Screen
-                // navigation.navigate('EnterInternalMarks', { subject: item });
-                alert("Marks Entry Module coming soon!");
+                navigation.navigate('InternalMarkEntry', { subject: item });
             }}
         >
             <View style={styles.iconBox}>

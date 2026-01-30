@@ -13,6 +13,7 @@ import RoleSelectScreen from '../screens/RoleSelectScreen';
 import StudentLoginScreen from '../screens/StudentLoginScreen';
 import TeacherLoginScreen from '../screens/TeacherLoginScreen';
 import TeacherSubjectsScreen from '../screens/TeacherSubjectsScreen';
+import InternalMarkEntryScreen from '../screens/InternalMarkEntryScreen';
 
 
 
@@ -52,8 +53,7 @@ const AppNavigator = () => {
         <Stack.Screen name="HODAnnouncement" component={HODAnnouncementScreen} />
         <Stack.Screen name="HODAssignTeacher" component={HODAssignTeacherScreen} />
         <Stack.Screen name="HODInternalMarks" component={HODInternalMarksScreen} />
-
-
+        <Stack.Screen name="InternalMarkEntry" component={InternalMarkEntryScreen} />
 
         {/* We will add other HOD action screens here later */}
       </Stack.Navigator>
