@@ -190,6 +190,7 @@ class Teacher(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
     qualification = models.CharField(max_length=100, null=True, blank=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='TEACHER')
+    profile_image = models.ImageField(upload_to='profiles/teachers/', null=True, blank=True)
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     is_hod = models.BooleanField(default=False)

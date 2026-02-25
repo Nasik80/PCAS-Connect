@@ -65,11 +65,12 @@ class StudentCreateSerializer(serializers.ModelSerializer):
 class TeacherCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
-        fields = ['name', 'email', 'department', 'phone', 'dob', 'role', 'qualification', 'date_of_joining']
+        fields = ['name', 'email', 'department', 'phone', 'dob', 'role', 'qualification', 'date_of_joining', 'profile_image']
         extra_kwargs = {
             'phone': {'required': False},
             'qualification': {'required': False},
-            'date_of_joining': {'required': False}
+            'date_of_joining': {'required': False},
+            'profile_image': {'required': False}
         }
 
     def create(self, validated_data):

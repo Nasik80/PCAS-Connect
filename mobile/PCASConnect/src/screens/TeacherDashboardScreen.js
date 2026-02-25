@@ -38,7 +38,8 @@ const TeacherDashboardScreen = ({ navigation }) => {
                 role: d.teacher.role,
                 department: d.teacher.department,
                 email: "teacher@pcas.edu", // Fallback or need to fetch from profile
-                phone: ""
+                phone: "",
+                profile_image: d.teacher.profile_image
             });
 
             setData(d);
@@ -67,7 +68,7 @@ const TeacherDashboardScreen = ({ navigation }) => {
         await AsyncStorage.clear();
         navigation.reset({
             index: 0,
-            routes: [{ name: 'Login' }],
+            routes: [{ name: 'RoleSelect' }],
         });
     };
 

@@ -203,6 +203,89 @@ class TeacherMonthlySummaryView(APIView):
         data = teacher.get_monthly_summary(year, month)
         return Response(data)
 
+class TeacherProfileView(APIView):
+    def get(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        profile_image_url = None
+        if teacher.profile_image:
+            profile_image_url = request.build_absolute_uri(teacher.profile_image.url)
+
+        data = {
+            "id": teacher.id,
+            "name": teacher.name,
+            "email": teacher.email,
+            "department": teacher.department.name,
+            "phone": teacher.phone,
+            "dob": teacher.dob,
+            "date_of_joining": teacher.date_of_joining,
+            "gender": teacher.gender,
+            "qualification": teacher.qualification,
+            "role": teacher.role,
+            "profile_image": profile_image_url
+        }
+        return Response(data)
+
+    def patch(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update fields if provided
+        for field in ['name', 'phone', 'dob', 'gender', 'qualification']:
+            if field in request.data:
+                setattr(teacher, field, request.data[field])
+
+        # Handle file upload for profile_image
+        if 'profile_image' in request.FILES:
+            teacher.profile_image = request.FILES['profile_image']
+        
+        teacher.save()
+        
+        profile_image_url = None
+        if teacher.profile_image:
+             profile_image_url = request.build_absolute_uri(teacher.profile_image.url)
+
+        return Response({"message": "Profile updated successfully", "profile_image": profile_image_url})
+
+class TeacherChangePasswordView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        role = request.data.get('role')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not all([user_id, role, old_password, new_password]):
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if role in ['TEACHER', 'HOD']:
+                teacher = Teacher.objects.get(id=user_id)
+                user = teacher.user
+            else:
+                return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+                
+            if not user:
+                 return Response({"error": "User profile not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check old password
+            auth_user = authenticate(username=user.username, password=old_password)
+            if auth_user is None:
+                return Response({"error": "Invalid old password"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+
+            return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": "An error occurred while changing password"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # --------------------------------------------------------------------------------
 # HOD SPECIFIC VIEWS
 # --------------------------------------------------------------------------------
@@ -352,20 +435,49 @@ class HODTimetableView(APIView):
         # dept, sem, day, period, subject, teacher
         data = request.data
         try:
+            # Fix: Lookup Period by Number (sent by frontend)
+            period = Period.objects.get(number=data['period_id'])
+            
             TimeTable.objects.update_or_create(
                 department_id=data['department_id'],
                 semester=data['semester'],
                 day=data['day'],
-                period_id=data['period_id'],
+                period=period, # Use the Period instance
                 defaults={
                     'subject_id': data['subject_id'],
                     'teacher_id': data['teacher_id']
                 }
             )
             return Response({"message": "Timetable updated"})
+        except Period.DoesNotExist:
+             return Response({"error": f"Period {data.get('period_id')} not found"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class TeacherAnnouncementListView(APIView):
+    def get(self, request, teacher_id):
+        try:
+            teacher = Teacher.objects.get(id=teacher_id)
+        except Teacher.DoesNotExist:
+            return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        announcements = Announcement.objects.filter(
+            audience__in=['ALL', 'TEACHERS', 'DEPT']
+        ).order_by('-date')
+
+        ann_data = [
+            {
+                "id": a.id,
+                "title": a.title,
+                "content": a.content,
+                "date": a.date.strftime("%Y-%m-%d"),
+                "sender": a.sender.username,
+                "audience": a.audience
+            }
+            for a in announcements
+        ]
+        return Response(ann_data)
 
 class TeacherDashboardView(APIView):
     def get(self, request, teacher_id):
@@ -403,11 +515,16 @@ class TeacherDashboardView(APIView):
             for a in announcements
         ]
 
+        profile_image_url = None
+        if teacher.profile_image:
+            profile_image_url = request.build_absolute_uri(teacher.profile_image.url)
+
         return Response({
             "teacher": {
                 "name": teacher.name,
                 "department": teacher.department.name,
-                "role": "HOD" if teacher.is_hod else "TEACHER"
+                "role": "HOD" if teacher.is_hod else "TEACHER",
+                "profile_image": profile_image_url
             },
             "stats": {
                 "subjects_count": len(subjects),
@@ -484,10 +601,15 @@ class HODDashboardView(APIView):
             for a in announcements
         ]
 
+        profile_image_url = None
+        if teacher.profile_image:
+            profile_image_url = request.build_absolute_uri(teacher.profile_image.url)
+
         return Response({
             "hod": {
                 "name": teacher.name,
                 "department": department.name,
+                "profile_image": profile_image_url
             },
             "stats": {
                 "students": student_count,
@@ -663,8 +785,8 @@ class TeacherWeeklyTimetableView(APIView):
         except Teacher.DoesNotExist:
             return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Fetch all timetable entries for this teacher
-        entries = TimeTable.objects.filter(teacher=teacher)
+        # Fetch all timetable entries for the teacher's department instead of just the teacher
+        entries = TimeTable.objects.filter(department=teacher.department).select_related('teacher', 'subject', 'period', 'department')
         
         data = []
         for entry in entries:
@@ -674,7 +796,8 @@ class TeacherWeeklyTimetableView(APIView):
                 "subject": entry.subject.name,
                 "code": entry.subject.code,
                 "semester": entry.semester,
-                "department": entry.department.code
+                "department": entry.department.code,
+                "teacher_name": entry.teacher.name if entry.teacher else "Unassigned"
             })
             
         return Response(data)

@@ -30,7 +30,8 @@ const HODDashboardScreen = ({ navigation }) => {
                 role: "HOD",
                 department: d.hod.department,
                 email: "hod@pcas.edu",
-                phone: ""
+                phone: "",
+                profile_image: d.hod.profile_image
             });
 
             setData(d);
@@ -57,7 +58,7 @@ const HODDashboardScreen = ({ navigation }) => {
         await AsyncStorage.clear();
         navigation.reset({
             index: 0,
-            routes: [{ name: 'Login' }],
+            routes: [{ name: 'RoleSelect' }],
         });
     };
 

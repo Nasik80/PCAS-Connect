@@ -57,9 +57,9 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout }) => {
                             onPress={() => onNavigate('Reports')}
                         />
                         <MenuItem
-                            icon={<Settings size={22} color="#555" />}
-                            label="Settings"
-                            onPress={() => onNavigate('Settings')}
+                            icon={<FileText size={22} color="#555" />}
+                            label="Reports"
+                            onPress={() => onNavigate('Reports')}
                         />
                         <MenuItem
                             icon={<Key size={22} color="#555" />}

@@ -14,6 +14,8 @@ import StudentLoginScreen from '../screens/StudentLoginScreen';
 import TeacherLoginScreen from '../screens/TeacherLoginScreen';
 import TeacherSubjectsScreen from '../screens/TeacherSubjectsScreen';
 import InternalMarkEntryScreen from '../screens/InternalMarkEntryScreen';
+import TeacherAnnouncementsScreen from '../screens/TeacherAnnouncementsScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 
 
 
@@ -43,6 +45,8 @@ const AppNavigator = () => {
         <Stack.Screen name="StudentDashboard" component={StudentTabs} />
         <Stack.Screen name="TeacherDashboard" component={TeacherTabs} />
         <Stack.Screen name="Subjects" component={TeacherSubjectsScreen} />
+        <Stack.Screen name="Announcements" component={TeacherAnnouncementsScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
 
 
 

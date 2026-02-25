@@ -1,17 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { colors } from '../constants/colors';
 import { User } from 'lucide-react-native';
 
-const IDCardPanel = ({ name, role, department, email, phone }) => {
+const IDCardPanel = ({ name, role, department, email, phone, profile_image }) => {
     return (
         <View style={styles.card}>
             {/* Header Line */}
             <View style={styles.topPattern} />
 
             <View style={styles.content}>
-                <View style={styles.avatar}>
-                    <User size={40} color="white" />
+                <View style={[styles.avatar, profile_image && { backgroundColor: 'transparent' }]}>
+                    {profile_image ? (
+                        <Image source={{ uri: profile_image }} style={styles.avatarImage} />
+                    ) : (
+                        <User size={40} color="white" />
+                    )}
                 </View>
 
                 <View style={styles.info}>
@@ -48,6 +52,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center', marginRight: 20,
         elevation: 2
     },
+    avatarImage: { width: '100%', height: '100%', borderRadius: 35 },
     info: { flex: 1 },
     name: {
         fontSize: 18, fontWeight: 'bold', color: '#333'

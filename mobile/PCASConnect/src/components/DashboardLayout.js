@@ -38,6 +38,7 @@ const DashboardLayout = ({
                             department={user.department}
                             email={user.email}
                             phone={user.phone}
+                            profile_image={user.profile_image}
                         />
                     )}
                     {children}
@@ -52,6 +53,7 @@ const DashboardLayout = ({
                             department={user.department}
                             email={user.email}
                             phone={user.phone}
+                            profile_image={user.profile_image}
                         />
                     )}
 

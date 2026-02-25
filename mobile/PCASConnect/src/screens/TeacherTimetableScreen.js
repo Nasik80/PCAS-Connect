@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -6,8 +6,9 @@ import { BASE_URL } from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
 import { colors } from '../constants/colors';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI"];
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const PERIODS = [1, 2, 3, 4, 5, 6];
 
 const TeacherTimetableScreen = ({ navigation }) => {
@@ -15,9 +16,11 @@ const TeacherTimetableScreen = ({ navigation }) => {
     const [timetable, setTimetable] = useState([]);
     const [selectedSemester, setSelectedSemester] = useState('ALL');
 
-    useEffect(() => {
-        fetchTimetable();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchTimetable();
+        }, [])
+    );
 
     const fetchTimetable = async () => {
         try {
@@ -112,6 +115,9 @@ const TeacherTimetableScreen = ({ navigation }) => {
                                                         <Text style={styles.subjectText} numberOfLines={2}>
                                                             {cell.subject}
                                                         </Text>
+                                                        <Text style={styles.teacherNameText} numberOfLines={1}>
+                                                            {cell.teacher_name}
+                                                        </Text>
                                                         <View style={styles.metaRow}>
                                                             <Text style={styles.semText}>Sem {cell.semester}</Text>
                                                             <Text style={styles.codeText}>{cell.code}</Text>
@@ -166,7 +172,8 @@ const styles = StyleSheet.create({
 
     periodNum: { position: 'absolute', top: 8, right: 8, fontSize: 12, color: '#94A3B8', fontWeight: 'bold' },
 
-    subjectText: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginBottom: 4, marginRight: 10 },
+    subjectText: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginBottom: 2, marginRight: 10 },
+    teacherNameText: { fontSize: 11, color: '#475569', marginBottom: 2, fontStyle: 'italic' },
 
     metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
     semText: { fontSize: 12, color: '#64748B', fontWeight: '500' },

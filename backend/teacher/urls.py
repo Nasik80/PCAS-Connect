@@ -23,7 +23,10 @@ from .views import (
     HODInternalMarksView,
     TeacherScheduleView,
     TeacherWeeklyTimetableView,
-    TeacherInternalMarkEntryView
+    TeacherInternalMarkEntryView,
+    TeacherProfileView,
+    TeacherAnnouncementListView,
+    TeacherChangePasswordView
 )
 
 urlpatterns = [
@@ -44,6 +47,7 @@ urlpatterns = [
     path('<int:teacher_id>/today-status/', TeacherTodayStatusView.as_view(), name='teacher-today-status'),
     path('<int:teacher_id>/attendance/monthly/<int:year>/<int:month>/', TeacherMonthlySummaryView.as_view(), name='teacher-monthly-summary'),
     path('internal-marks/<int:subject_id>/', TeacherInternalMarkEntryView.as_view(), name='teacher-internal-marks-entry'),
+    path('profile/<int:teacher_id>/', TeacherProfileView.as_view(), name='teacher-profile'),
 
     # HOD Role
     path('hod/stats/<int:teacher_id>/', HODDashboardStatsView.as_view(), name='hod-stats-old'), # Renamed old one to avoid conflict if needed, or just keep
@@ -57,4 +61,6 @@ urlpatterns = [
     path('hod/attendance/stats/<int:dept_id>/', HODAttendanceStatsView.as_view(), name='hod-attendance-stats'),
     path('hod/internal-marks/<int:dept_id>/', HODInternalMarksView.as_view(), name='hod-internal-marks'),
     path('hod/internal-marks/action/', HODInternalMarksView.as_view(), name='hod-internal-marks-action'),
+    path('announcements/<int:teacher_id>/', TeacherAnnouncementListView.as_view(), name='teacher-announcements-list'),
+    path('change-password/', TeacherChangePasswordView.as_view(), name='teacher-change-password'),
 ]

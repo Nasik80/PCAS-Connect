@@ -11,7 +11,7 @@ const Teachers = () => {
     const [selectedDept, setSelectedDept] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
-        name: '', email: '', department: '', phone: '', qualification: '', gender: 'Male', role: 'TEACHER'
+        name: '', email: '', department: '', phone: '', qualification: '', gender: 'Male', role: 'TEACHER', profile_image: null
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -59,14 +59,30 @@ const Teachers = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await api.post('/api/admin/add/teacher/', formData);
+            const data = new FormData();
+            data.append('name', formData.name);
+            data.append('email', formData.email);
+            data.append('department', formData.department);
+            data.append('phone', formData.phone);
+            data.append('qualification', formData.qualification);
+            data.append('gender', formData.gender);
+            data.append('role', formData.role);
+            if (formData.profile_image) {
+                data.append('profile_image', formData.profile_image);
+            }
+
+            // Notice we use headers: { 'Content-Type': 'multipart/form-data' } implicitly by letting Axios handle FormData
+            await api.post('/api/admin/add/teacher/', data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             setShowModal(false);
             setFormData({
-                name: '', email: '', department: '', phone: '', qualification: '', gender: 'Male', role: 'TEACHER'
+                name: '', email: '', department: '', phone: '', qualification: '', gender: 'Male', role: 'TEACHER', profile_image: null
             });
             fetchTeachers();
         } catch (error) {
-            alert("Failed to add teacher. Email might be duplicate.");
+            alert("Failed to add teacher. Email might be duplicate or invalid data.");
         } finally {
             setSubmitting(false);
         }
@@ -235,6 +251,16 @@ const Teachers = () => {
                                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     placeholder="e.g. MSc Computer Science, PhD"
                                     value={formData.qualification} onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Profile Image</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    onChange={(e) => setFormData({ ...formData, profile_image: e.target.files[0] })}
                                 />
                             </div>
 

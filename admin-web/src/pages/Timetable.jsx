@@ -54,8 +54,8 @@ const Timetable = () => {
         );
     };
 
-    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-    const periods = [1, 2, 3, 4, 5];
+    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const periods = [1, 2, 3, 4, 5, 6];
 
     return (
         <Layout>

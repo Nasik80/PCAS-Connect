@@ -7,8 +7,8 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI"];
-const PERIODS = [1, 2, 3, 4, 5];
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const PERIODS = [1, 2, 3, 4, 5, 6];
 
 const HODTimeTableEditorScreen = () => {
     const [loading, setLoading] = useState(false);
