@@ -6,7 +6,7 @@ from datetime import datetime
 
 @receiver(post_save, sender=Student)
 def create_student_user(sender, instance, created, **kwargs):
-    if created:
+    if created and not instance.user:
         name = instance.name.strip().upper()
         first_5 = name.replace(" ", "")[:5]       # remove spaces → first 5 letters
         

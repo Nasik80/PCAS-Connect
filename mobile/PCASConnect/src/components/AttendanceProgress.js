@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-const AttendanceProgress = ({ percentage = 0, radius = 45, strokeWidth = 10 }) => {
+const AttendanceProgress = ({ percentage = 0, radius = 45, strokeWidth = 10, showText = true }) => {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
@@ -39,12 +39,14 @@ const AttendanceProgress = ({ percentage = 0, radius = 45, strokeWidth = 10 }) =
           />
         </Svg>
       </View>
-      <View style={styles.textContainer}>
-        <Text style={[styles.percentageText, { color: getColor(percentage) }]}>
-          {percentage}%
-        </Text>
-        <Text style={styles.label}>Attendance</Text>
-      </View>
+      {showText && (
+        <View style={styles.textContainer}>
+          <Text style={[styles.percentageText, { color: getColor(percentage) }]}>
+            {percentage}%
+          </Text>
+          <Text style={styles.label}>Attendance</Text>
+        </View>
+      )}
     </View>
   );
 };

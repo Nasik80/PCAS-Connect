@@ -5,9 +5,25 @@ import { API_BASE_URL } from '../config';
 const BASE_URL = API_BASE_URL;
 // change this
 
-// STUDENT DASHBOARD API
-export const getStudentProfile = async (studentId) => {
+// STUDENT DASHBOARD STATS
+export const getStudentDashboard = async (studentId) => {
   const res = await axios.get(`${BASE_URL}/api/student/${studentId}/dashboard/`);
+  return res.data;
+};
+
+// STUDENT PROFILE DETAILS
+export const getStudentProfile = async (studentId) => {
+  const res = await axios.get(`${BASE_URL}/api/student/${studentId}/profile/`);
+  return res.data;
+};
+
+// UPDATE STUDENT PROFILE
+export const updateStudentProfile = async (studentId, formData) => {
+  const res = await axios.put(`${BASE_URL}/api/student/${studentId}/profile/`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return res.data;
 };
 

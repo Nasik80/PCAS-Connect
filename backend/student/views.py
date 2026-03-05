@@ -27,8 +27,43 @@ class StudentLoginView(APIView):
             "name": student.name,
             "email": student.email,
             "department": student.department.name,
-            "semester": student.semester
+            "semester": student.semester,
+            "requires_password_change": student.requires_password_change
         })
+
+class StudentChangePasswordView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not all([user_id, old_password, new_password]):
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student = Student.objects.get(id=user_id)
+            user = student.user
+            
+            if not user:
+                 return Response({"error": "User profile not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check old password
+            auth_user = authenticate(username=user.username, password=old_password)
+            if auth_user is None:
+                return Response({"error": "Invalid old password"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set new password
+            user.set_password(new_password)
+            user.save()
+
+            # Clear requires_password_change flag
+            student.requires_password_change = False
+            student.save()
+
+            return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": "An error occurred while changing password"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class StudentDashboardView(APIView):
     def get(self, request, student_id):
@@ -113,3 +148,27 @@ class StudentTimeTableView(APIView):
                 grouped_timetable[day].append(entry)
 
         return Response(grouped_timetable)
+
+class StudentProfileDetailView(APIView):
+    def get(self, request, student_id):
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from .serializers import StudentProfileSerializer
+        serializer = StudentProfileSerializer(student)
+        return Response(serializer.data)
+
+    def put(self, request, student_id):
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from .serializers import StudentProfileSerializer
+        serializer = StudentProfileSerializer(student, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

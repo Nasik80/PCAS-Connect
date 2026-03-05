@@ -63,7 +63,11 @@ class Student(models.Model):
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     semester = models.IntegerField()
     dob = models.DateField(null=True, blank=True)
-
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    blood_group = models.CharField(max_length=10, null=True, blank=True)
+    profile_image = models.ImageField(upload_to='profiles/students/', null=True, blank=True)
+    requires_password_change = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -194,6 +198,7 @@ class Teacher(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     is_hod = models.BooleanField(default=False)
+    requires_password_change = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name

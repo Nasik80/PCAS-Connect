@@ -39,7 +39,7 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout }) => {
                         <MenuItem
                             icon={<User size={22} color="#555" />}
                             label="Profile"
-                            onPress={() => onNavigate('Profile')}
+                            onPress={() => onNavigate('StudentProfile')}
                         />
                         <MenuItem
                             icon={<Book size={22} color="#555" />}

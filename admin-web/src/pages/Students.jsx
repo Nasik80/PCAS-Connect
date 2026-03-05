@@ -13,7 +13,8 @@ const Students = () => {
 
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
-        name: '', email: '', register_number: '', department: '', semester: '1', dob: ''
+        name: '', email: '', register_number: '', department: '', semester: '1', dob: '',
+        phone_number: '', address: '', blood_group: '', profile_image: null
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -51,13 +52,28 @@ const Students = () => {
         }
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData({ ...formData, profile_image: e.target.files[0] });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await api.post('/api/admin/add/student/', formData);
+            const data = new FormData();
+            Object.keys(formData).forEach(key => {
+                if (formData[key] !== null && formData[key] !== '') {
+                    data.append(key, formData[key]);
+                }
+            });
+
+            await api.post('/api/admin/add/student/', data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             setShowModal(false);
-            setFormData({ name: '', email: '', register_number: '', department: '', semester: '1', dob: '' });
+            setFormData({ name: '', email: '', register_number: '', department: '', semester: '1', dob: '', phone_number: '', address: '', blood_group: '', profile_image: null });
             fetchStudents();
         } catch (error) {
             console.error(error);
@@ -173,6 +189,22 @@ const Students = () => {
                             <div>
                                 <label className="text-sm font-medium text-slate-700">Date of Birth</label>
                                 <input type="date" value={formData.dob} onChange={e => setFormData({ ...formData, dob: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                                <input type="tel" value={formData.phone_number} onChange={e => setFormData({ ...formData, phone_number: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="text-sm font-medium text-slate-700">Address</label>
+                                <textarea rows="2" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-700">Blood Group</label>
+                                <input type="text" placeholder="e.g. O+" value={formData.blood_group} onChange={e => setFormData({ ...formData, blood_group: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-slate-700">Profile Image</label>
+                                <input type="file" accept="image/*" onChange={handleFileChange} className="w-full mt-1 p-2 border rounded-lg text-sm" />
                             </div>
                             <div className="col-span-2 grid grid-cols-2 gap-4 border-t pt-4">
                                 <div>

@@ -8,6 +8,7 @@ import { colors } from '../constants/colors';
 import StudentDashboardScreen from '../screens/StudentDashboardScreen';
 import StudentTimeTableScreen from '../screens/StudentTimeTableScreen';
 import StudentSubjectsScreen from '../screens/StudentSubjectsScreen';
+import StudentProfileScreen from '../screens/StudentProfileScreen';
 
 // Dummy Screens for now
 const DummyScreen = ({ name }) => (
@@ -80,8 +81,8 @@ const StudentTabs = () => {
       />
 
       <Tab.Screen
-        name="Profile"
-        children={() => <DummyScreen name="Profile" />}
+        name="ProfileTab"
+        component={StudentProfileScreen}
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size }) => <User color={color} size={24} />,

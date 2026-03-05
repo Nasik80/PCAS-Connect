@@ -43,8 +43,18 @@ const StudentLoginScreen = ({ navigation }) => {
         return;
       }
 
-      await AsyncStorage.setItem("student", JSON.stringify(data));
-      navigation.replace("StudentDashboard", { userData: data });
+      if (data.requires_password_change) {
+        navigation.replace("ForcedPasswordChange", {
+          role: "STUDENT",
+          userId: data.student_id,
+          oldPassword: password,
+          nextScreen: "StudentDashboard",
+          userData: data
+        });
+      } else {
+        await AsyncStorage.setItem("student", JSON.stringify(data));
+        navigation.replace("StudentDashboard", { userData: data });
+      }
 
     } catch (error) {
       if (error.response && error.response.data) {

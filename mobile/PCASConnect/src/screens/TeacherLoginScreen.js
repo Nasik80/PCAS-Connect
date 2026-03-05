@@ -36,20 +36,30 @@ const TeacherLoginScreen = ({ navigation }) => {
     try {
       const data = await loginUser('teacher', email, password);
 
-      // Save data
-      await AsyncStorage.setItem('teacher', JSON.stringify(data));
-      await AsyncStorage.setItem('teacherId', data.teacher_id.toString());
-      await AsyncStorage.setItem('teacher_id', data.teacher_id.toString()); // Alias for HOD screens
-      await AsyncStorage.setItem('department_id', data.department_id.toString());
-      await AsyncStorage.setItem('role', data.role);
-      // If token exists in future: await AsyncStorage.setItem('token', data.token);
-
-      Alert.alert("Success", "Login Successful");
-
-      if (data.role === 'HOD') {
-        navigation.replace('HODDashboard');
+      if (data.requires_password_change) {
+        navigation.replace("ForcedPasswordChange", {
+          role: data.role,
+          userId: data.teacher_id,
+          oldPassword: password,
+          nextScreen: data.role === 'HOD' ? 'HODDashboard' : 'TeacherDashboard',
+          userData: data
+        });
       } else {
-        navigation.replace('TeacherDashboard');
+        // Save data
+        await AsyncStorage.setItem('teacher', JSON.stringify(data));
+        await AsyncStorage.setItem('teacherId', data.teacher_id.toString());
+        await AsyncStorage.setItem('teacher_id', data.teacher_id.toString()); // Alias for HOD screens
+        await AsyncStorage.setItem('department_id', data.department_id.toString());
+        await AsyncStorage.setItem('role', data.role);
+        // If token exists in future: await AsyncStorage.setItem('token', data.token);
+
+        Alert.alert("Success", "Login Successful");
+
+        if (data.role === 'HOD') {
+          navigation.replace('HODDashboard');
+        } else {
+          navigation.replace('TeacherDashboard');
+        }
       }
 
     } catch (error) {

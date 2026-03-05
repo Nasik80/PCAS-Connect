@@ -16,6 +16,8 @@ import TeacherSubjectsScreen from '../screens/TeacherSubjectsScreen';
 import InternalMarkEntryScreen from '../screens/InternalMarkEntryScreen';
 import TeacherAnnouncementsScreen from '../screens/TeacherAnnouncementsScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import StudentProfileScreen from '../screens/StudentProfileScreen';
+import ForcedPasswordChangeScreen from '../screens/ForcedPasswordChangeScreen';
 
 
 
@@ -47,6 +49,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Subjects" component={TeacherSubjectsScreen} />
         <Stack.Screen name="Announcements" component={TeacherAnnouncementsScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="ForcedPasswordChange" component={ForcedPasswordChangeScreen} />
+        <Stack.Screen name="StudentProfile" component={StudentProfileScreen} />
 
 
 

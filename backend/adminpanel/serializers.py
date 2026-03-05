@@ -28,15 +28,16 @@ class StudentCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from django.contrib.auth.models import User
         from core.models import Enrollment, Subject
+        from django.utils.crypto import get_random_string
+        from django.core.mail import send_mail
+        from django.conf import settings
         
         name = validated_data.get('name')
         dob = validated_data.get('dob')
         email = validated_data.get('email')
         
-        # Generate Password: 5 name chars (UPPER) + birth year
-        clean_name = name.replace(" ", "")[:5].upper()
-        year = str(dob.year) if dob else "2000"
-        password = f"{clean_name}{year}"
+        # Generate Password: 10 random chars
+        password = get_random_string(length=10)
         
         # Create User
         user = User.objects.create_user(username=email, email=email, password=password)
@@ -60,6 +61,15 @@ class StudentCreateSerializer(serializers.ModelSerializer):
         student._generated_password = password
         student._assigned_subjects_count = len(enrollments)
         
+        # Send Email
+        send_mail(
+            subject="Welcome to PCAS-Connect - Your Student Account",
+            message=f"Hello {name},\n\nYour student account has been created.\n\nEmail: {email}\nTemporary Password: {password}\n\nPlease change your password upon your first login.\n\nBest regards,\nPCAS-Connect Admin",
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'admin@pcasconnect.com'),
+            recipient_list=[email],
+            fail_silently=True,
+        )
+
         return student
 
 class TeacherCreateSerializer(serializers.ModelSerializer):
@@ -75,16 +85,17 @@ class TeacherCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from django.contrib.auth.models import User
+        from django.utils.crypto import get_random_string
+        from django.core.mail import send_mail
+        from django.conf import settings
         
         name = validated_data.get('name')
         email = validated_data.get('email')
         dob = validated_data.get('dob')
         role = validated_data.get('role', 'TEACHER')
         
-        # Generate Password: 5 name chars (UPPER) + Birth Year
-        clean_name = name.replace(" ", "")[:5].upper()
-        year = str(dob.year) if dob else "2000"
-        password = f"{clean_name}{year}"
+        # Generate Password: 10 random chars
+        password = get_random_string(length=10)
         
         # Create User
         user = User.objects.create_user(username=email, email=email, password=password)
@@ -97,6 +108,15 @@ class TeacherCreateSerializer(serializers.ModelSerializer):
         
         # Attach temp data
         teacher._generated_password = password
+        
+        # Send Email
+        send_mail(
+            subject="Welcome to PCAS-Connect - Your Teacher Account",
+            message=f"Hello {name},\n\nYour teacher account has been created.\n\nEmail: {email}\nTemporary Password: {password}\n\nPlease change your password upon your first login.\n\nBest regards,\nPCAS-Connect Admin",
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'admin@pcasconnect.com'),
+            recipient_list=[email],
+            fail_silently=True,
+        )
         
         return teacher
 

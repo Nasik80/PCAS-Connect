@@ -10,7 +10,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import DashboardLayout from '../components/DashboardLayout';
 import AttendanceProgress from '../components/AttendanceProgress';
+import { API_BASE_URL } from '../config';
 import {
+  getStudentDashboard,
   getStudentProfile,
   getTodayAttendance,
   getMonthlyAttendance
@@ -25,6 +27,7 @@ const StudentDashboardScreen = ({ route, navigation }) => {
 
   // Data State
   const [profile, setProfile] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState(null);
   const [todayData, setTodayData] = useState(null);
   const [monthData, setMonthData] = useState(null);
 
@@ -66,25 +69,30 @@ const StudentDashboardScreen = ({ route, navigation }) => {
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
 
-      console.log(`Fetching data for Student ID: ${id}`);
-
-      const [profileRes, todayRes, monthRes] = await Promise.all([
+      const [profileRes, statsRes, todayRes, monthRes] = await Promise.all([
         getStudentProfile(id),
+        getStudentDashboard(id),
         getTodayAttendance(id),
         getMonthlyAttendance(id, currentYear, currentMonth)
       ]);
 
       setProfile(profileRes);
+      setDashboardStats(statsRes);
       setTodayData(todayRes);
       setMonthData(monthRes);
 
-      // Prepare User Object for ID Card
+      let avatarUrl = profileRes?.profile_image;
+      if (avatarUrl && !avatarUrl.startsWith('http')) {
+        avatarUrl = `${API_BASE_URL}${avatarUrl}`;
+      }
+
       setUser({
-        name: profileRes?.student_name || "Student",
+        name: profileRes?.name || "Student",
         role: "Student",
-        department: `${profileRes?.department || "Dept"} • Sem ${profileRes?.semester || 1}`,
-        email: "student@pcas.edu", // TODO: Fetch from profile if available
-        phone: ""
+        department: `${profileRes?.department_name || "Dept"} • Sem ${profileRes?.semester || 1}`,
+        email: profileRes?.email || "student@pcas.edu",
+        phone: profileRes?.phone_number || "",
+        profile_image: avatarUrl
       });
 
       Animated.timing(fadeAnim, {
@@ -171,7 +179,7 @@ const StudentDashboardScreen = ({ route, navigation }) => {
               <Activity size={18} color={colors.primary} />
             </View>
             <View style={styles.statContent}>
-              <AttendanceProgress percentage={monthPercentage} radius={32} />
+              <AttendanceProgress percentage={monthPercentage} radius={38} strokeWidth={8} showText={false} />
               <View style={styles.statDetails}>
                 <Text style={styles.bigStat}>{monthPercentage}%</Text>
                 <Text style={styles.statLabel}>Total</Text>

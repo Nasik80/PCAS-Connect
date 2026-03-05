@@ -37,6 +37,7 @@ class TeacherLoginView(APIView):
             "email": teacher.email,
             "department": teacher.department.name,
             "department_id": teacher.department.id,
+            "requires_password_change": teacher.requires_password_change
         })
 
 # --------------------------------------------------------------------------------
@@ -280,6 +281,10 @@ class TeacherChangePasswordView(APIView):
             # Set new password
             user.set_password(new_password)
             user.save()
+
+            # Clear requires_password_change flag
+            teacher.requires_password_change = False
+            teacher.save()
 
             return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
 
