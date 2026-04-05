@@ -18,6 +18,11 @@ const Students = () => {
     });
     const [submitting, setSubmitting] = useState(false);
 
+    const [viewingStudent, setViewingStudent] = useState(null);
+    const [viewMode, setViewMode] = useState('view'); // 'view' or 'edit'
+    const [editFormData, setEditFormData] = useState({});
+    const [actionLoading, setActionLoading] = useState(false);
+
     useEffect(() => {
         fetchInitialData();
     }, [selectedDept, selectedSem]);
@@ -49,6 +54,59 @@ const Students = () => {
             setStudents(res.data);
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const handleViewStudent = async (student) => {
+        try {
+            const res = await api.get(`/api/admin/student/${student.id}/`);
+            setViewingStudent(res.data);
+            setEditFormData({
+                name: res.data.name || '',
+                email: res.data.email || '',
+                register_number: res.data.register_number || '',
+                department: res.data.department || '',
+                semester: res.data.semester || '1',
+                dob: res.data.dob || '',
+                phone_number: res.data.phone_number || '',
+                address: res.data.address || ''
+            });
+            setViewMode('view');
+        } catch (error) {
+            console.error("Failed to fetch student details", error);
+            alert("Failed to load student details.");
+        }
+    };
+
+    const handleDeleteStudent = async () => {
+        if (!window.confirm("Are you sure you want to delete this student?")) return;
+        setActionLoading(true);
+        try {
+            await api.delete(`/api/admin/student/${viewingStudent.id}/`);
+            setViewingStudent(null);
+            fetchStudents();
+        } catch (error) {
+            console.error("Failed to delete student", error);
+            alert("Failed to delete student.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleUpdateStudent = async (e) => {
+        e.preventDefault();
+        setActionLoading(true);
+        try {
+            await api.put(`/api/admin/student/${viewingStudent.id}/`, editFormData);
+            setViewMode('view');
+            const res = await api.get(`/api/admin/student/${viewingStudent.id}/`);
+            setViewingStudent(res.data);
+            fetchStudents();
+        } catch (error) {
+            console.error("Failed to update student", error);
+            alert("Failed to update student.");
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -157,7 +215,7 @@ const Students = () => {
                                     <div className="flex items-center gap-2"><Mail size={14} /> {student.email}</div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <button className="text-indigo-600 font-medium text-sm hover:underline">View</button>
+                                    <button onClick={() => handleViewStudent(student)} className="text-indigo-600 font-medium text-sm hover:underline">View</button>
                                 </td>
                             </tr>
                         ))}
@@ -233,7 +291,121 @@ const Students = () => {
                 </div>
             )}
 
+            {/* View/Edit Modal */}
+            {viewingStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-slate-800">
+                                {viewMode === 'view' ? 'Student Details' : 'Edit Student'}
+                            </h3>
+                            {viewMode === 'view' && (
+                                <div className="flex gap-2">
+                                    <button onClick={() => setViewMode('edit')} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                                        Edit
+                                    </button>
+                                    <button onClick={handleDeleteStudent} disabled={actionLoading} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                                        Delete
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {viewMode === 'view' ? (
+                            <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Name</p>
+                                    <p className="text-slate-800 font-semibold">{viewingStudent.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Register Number</p>
+                                    <p className="text-slate-800 font-semibold">{viewingStudent.register_number}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Email</p>
+                                    <p className="text-slate-800">{viewingStudent.email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Phone Number</p>
+                                    <p className="text-slate-800">{viewingStudent.phone_number || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Department</p>
+                                    <p className="text-slate-800">{viewingStudent.department_name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Semester</p>
+                                    <p className="text-slate-800">Semester {viewingStudent.semester}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-slate-500 font-medium">Date of Birth</p>
+                                    <p className="text-slate-800">{viewingStudent.dob || 'N/A'}</p>
+                                </div>
+                                <div className="col-span-2">
+                                    <p className="text-sm text-slate-500 font-medium">Address</p>
+                                    <p className="text-slate-800">{viewingStudent.address || 'N/A'}</p>
+                                </div>
+                                <div className="col-span-2 flex justify-end pt-4 border-t mt-2">
+                                    <button onClick={() => setViewingStudent(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleUpdateStudent} className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Student Name</label>
+                                    <input required value={editFormData.name} onChange={e => setEditFormData({ ...editFormData, name: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Register Number</label>
+                                    <input required value={editFormData.register_number} onChange={e => setEditFormData({ ...editFormData, register_number: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Email</label>
+                                    <input type="email" required value={editFormData.email} onChange={e => setEditFormData({ ...editFormData, email: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Date of Birth</label>
+                                    <input type="date" value={editFormData.dob} onChange={e => setEditFormData({ ...editFormData, dob: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                                    <input type="tel" value={editFormData.phone_number} onChange={e => setEditFormData({ ...editFormData, phone_number: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-sm font-medium text-slate-700">Address</label>
+                                    <textarea rows="2" value={editFormData.address} onChange={e => setEditFormData({ ...editFormData, address: e.target.value })} className="w-full mt-1 p-2 border rounded-lg" />
+                                </div>
+                                <div className="col-span-2 grid grid-cols-2 gap-4 border-t pt-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">Department</label>
+                                        <select required value={editFormData.department} onChange={e => setEditFormData({ ...editFormData, department: e.target.value })} className="w-full mt-1 p-2 border rounded-lg bg-white">
+                                            <option value="">Select Dept</option>
+                                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">Semester</label>
+                                        <select value={editFormData.semester} onChange={e => setEditFormData({ ...editFormData, semester: e.target.value })} className="w-full mt-1 p-2 border rounded-lg bg-white">
+                                            {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>Sem {s}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="col-span-2 flex justify-end gap-3 pt-4 border-t mt-2">
+                                    <button type="button" onClick={() => setViewMode('view')} className="px-4 py-2 text-slate-600 font-medium">Cancel</button>
+                                    <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
+                                        {actionLoading ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
+
         </Layout>
+
     );
 };
 

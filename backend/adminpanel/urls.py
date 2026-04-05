@@ -23,7 +23,11 @@ from .views import (
     AdminTeacherDetailView,
     AdminTeacherPasswordResetView,
     AssignHODView,
-    AdminTimetableListView
+    AdminTimetableListView,
+    AdminDepartmentReportView,
+    AdminStudentReportView,
+    AdminDepartmentDetailView,
+    AdminSubjectDetailView
 )
 
 urlpatterns = [
@@ -42,9 +46,11 @@ urlpatterns = [
     path('add/student/', AddStudentView.as_view(), name='add-student'),
     path('add/teacher/', AddTeacherView.as_view(), name='add-teacher'),
     path('add/department/', AddDepartmentView.as_view(), name='add-department'),
+    path('department/<int:pk>/', AdminDepartmentDetailView.as_view(), name='admin-department-detail'),
     path('assign/hod/', AssignHODView.as_view(), name='assign-hod'),
     path('timetable/list/', AdminTimetableListView.as_view(), name='admin-timetable-list'),
     path('add/subject/', AddSubjectView.as_view(), name='add-subject'),
+    path('subject/<int:pk>/', AdminSubjectDetailView.as_view(), name='admin-subject-detail'),
     
     # Promotion
     path('promote/students/', PromoteStudentsView.as_view(), name='promote-students'),
@@ -58,4 +64,8 @@ urlpatterns = [
     path('teachers/list/', AdminTeacherListView.as_view(), name='admin-teacher-list'),
     path('teacher/<int:pk>/', AdminTeacherDetailView.as_view(), name='admin-teacher-detail'),
     path('teacher/<int:pk>/reset-password/', AdminTeacherPasswordResetView.as_view(), name='admin-teacher-password-reset'),
+
+    # Reports
+    path('reports/departments/', AdminDepartmentReportView.as_view(), name='admin-reports-departments'),
+    path('reports/students/', AdminStudentReportView.as_view(), name='admin-reports-students'),
 ]

@@ -12,7 +12,7 @@ const MenuItem = ({ icon, label, onPress, danger }) => (
     </TouchableOpacity>
 );
 
-const SideNavMenu = ({ visible, onClose, onNavigate, onLogout }) => {
+const SideNavMenu = ({ visible, onClose, onNavigate, onLogout, role }) => {
     return (
         <Modal visible={visible} transparent animationType="none">
             {/* Backdrop */}
@@ -57,9 +57,9 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout }) => {
                             onPress={() => onNavigate('Reports')}
                         />
                         <MenuItem
-                            icon={<FileText size={22} color="#555" />}
-                            label="Reports"
-                            onPress={() => onNavigate('Reports')}
+                            icon={<Book size={22} color="#555" />}
+                            label="Study Notes"
+                            onPress={() => onNavigate(role?.toLowerCase() === 'student' ? 'StudyNotes' : 'TeacherStudyNotes')}
                         />
                         <MenuItem
                             icon={<Key size={22} color="#555" />}

@@ -124,3 +124,21 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject 
         fields = ['name', 'code', 'semester', 'credit', 'subject_type', 'department']
+
+    def create(self, validated_data):
+        from core.models import Student, Enrollment
+        subject = super().create(validated_data)
+        
+        # Auto-enroll existing students in this department and semester
+        students = Student.objects.filter(
+            department=subject.department,
+            semester=subject.semester
+        )
+        enrollments = [
+            Enrollment(student=student, subject=subject)
+            for student in students
+        ]
+        if enrollments:
+            Enrollment.objects.bulk_create(enrollments)
+            
+        return subject

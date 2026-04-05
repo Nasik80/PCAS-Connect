@@ -900,3 +900,22 @@ class TeacherInternalMarkEntryView(APIView):
             updated_count += 1
             
         return Response({"message": "Marks updated successfully", "count": updated_count})
+# Ensure viewsets is imported
+from rest_framework import viewsets
+from .serializers import StudyNoteSerializer
+from core.models import StudyNote, Teacher
+
+class StudyNoteViewSet(viewsets.ModelViewSet):
+    serializer_class = StudyNoteSerializer
+    # Note: assuming url handles the routing, we define it carefully
+    
+    def get_queryset(self):
+        teacher_id = self.request.query_params.get('teacher_id')
+        if teacher_id:
+            return StudyNote.objects.filter(uploaded_by_id=teacher_id)
+        return StudyNote.objects.all()
+
+    def perform_create(self, serializer):
+        teacher_id = self.request.data.get('teacher_id')
+        teacher = Teacher.objects.get(id=teacher_id)
+        serializer.save(uploaded_by=teacher)

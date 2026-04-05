@@ -67,6 +67,7 @@ const DashboardLayout = ({
             <SideNavMenu
                 visible={menuVisible}
                 onClose={() => setMenuVisible(false)}
+                role={user?.role}
                 onNavigate={(screen) => {
                     setMenuVisible(false);
                     onNavigate(screen);

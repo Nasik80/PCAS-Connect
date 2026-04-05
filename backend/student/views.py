@@ -172,3 +172,30 @@ class StudentProfileDetailView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from core.models import StudyNote
+class StudentStudyNotesView(APIView):
+    def get(self, request, student_id):
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        # Filter notes by student's department and semester
+        notes = StudyNote.objects.filter(
+            department=student.department,
+            semester=student.semester
+        ).select_related('subject', 'uploaded_by')
+        
+        data = []
+        for note in notes:
+            data.append({
+                "id": note.id,
+                "title": note.title,
+                "file_url": request.build_absolute_uri(note.file.url) if note.file else None,
+                "subject_name": note.subject.name,
+                "uploaded_by": note.uploaded_by.name,
+                "uploaded_at": note.uploaded_at,
+            })
+            
+        return Response(data)

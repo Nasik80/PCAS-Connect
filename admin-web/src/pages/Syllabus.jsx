@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import api from '../services/api';
-import { Plus, BookOpen, Loader2, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, Loader2, Trash2, Edit2 } from 'lucide-react';
 
 const Syllabus = () => {
     const [subjects, setSubjects] = useState([]);
@@ -12,6 +12,8 @@ const Syllabus = () => {
         name: '', code: '', semester: '1', credit: '4', subject_type: 'CORE', department: ''
     });
     const [submitting, setSubmitting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editId, setEditId] = useState(null);
 
     const [filterDept, setFilterDept] = useState('');
     const [filterSem, setFilterSem] = useState('1');
@@ -67,14 +69,45 @@ const Syllabus = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await api.post('/api/admin/add/subject/', formData);
+            if (isEditing) {
+                await api.put(`/api/admin/subject/${editId}/`, formData);
+            } else {
+                await api.post('/api/admin/add/subject/', formData);
+            }
             setShowModal(false);
             setFormData({ ...formData, name: '', code: '' });
+            setIsEditing(false);
+            setEditId(null);
             fetchSubjects();
         } catch (error) {
-            alert("Failed to add subject. Code might be duplicate.");
+            alert(`Failed to ${isEditing ? 'update' : 'add'} subject. Code might be duplicate.`);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleEdit = (subject) => {
+        setFormData({
+            name: subject.name,
+            code: subject.code,
+            semester: subject.semester.toString(),
+            credit: subject.credit.toString(),
+            subject_type: subject.subject_type,
+            department: subject.department ? subject.department.toString() : filterDept.toString()
+        });
+        setIsEditing(true);
+        setEditId(subject.id);
+        setShowModal(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this subject? This might affect related student enrollments and timetables!")) return;
+        try {
+            await api.delete(`/api/admin/subject/${id}/`);
+            fetchSubjects();
+        } catch (error) {
+            console.error("Failed to delete", error);
+            alert("Failed to delete subject. Please check related dependencies.");
         }
     };
 
@@ -86,7 +119,12 @@ const Syllabus = () => {
                     <p className="text-slate-500">MGU UG 2024 Curriculum</p>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => {
+                        setFormData({ name: '', code: '', semester: filterSem, credit: '4', subject_type: 'CORE', department: filterDept });
+                        setIsEditing(false);
+                        setEditId(null);
+                        setShowModal(true);
+                    }}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
                 >
                     <Plus size={20} />
@@ -144,8 +182,13 @@ const Syllabus = () => {
                                     <h3 className="font-bold text-slate-800">{sub.name}</h3>
                                     <p className="text-sm text-slate-500 mt-1">{sub.credit} Credits</p>
                                 </div>
-                                <div className="p-2 bg-slate-50 rounded-lg text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                    <BookOpen size={20} />
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={() => handleEdit(sub)} className="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button onClick={() => handleDelete(sub.id)} className="p-2 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -157,7 +200,7 @@ const Syllabus = () => {
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h3 className="text-xl font-bold text-slate-800 mb-4">Add New Course</h3>
+                        <h3 className="text-xl font-bold text-slate-800 mb-4">{isEditing ? 'Edit Course' : 'Add New Course'}</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
@@ -231,7 +274,7 @@ const Syllabus = () => {
                                     disabled={submitting}
                                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
                                 >
-                                    {submitting ? 'Saving...' : 'Save Course'}
+                                    {submitting ? (isEditing ? 'Updating...' : 'Saving...') : (isEditing ? 'Update Course' : 'Save Course')}
                                 </button>
                             </div>
                         </form>

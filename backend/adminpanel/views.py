@@ -609,3 +609,160 @@ class AdminTeacherPasswordResetView(APIView):
             
         except Teacher.DoesNotExist:
              return Response({"error": "Teacher not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class AdminDepartmentReportView(APIView):
+    def get(self, request):
+        departments = Department.objects.all()
+        report_data = []
+        for dept in departments:
+            # Students
+            student_count = Student.objects.filter(department=dept).count()
+            
+            # Attendance
+            total_attendance = Attendance.objects.filter(student__department=dept).count()
+            present_attendance = Attendance.objects.filter(student__department=dept, status='P').count()
+            attendance_perc = 0
+            if total_attendance > 0:
+                attendance_perc = round((present_attendance / total_attendance) * 100, 2)
+                
+            # Internal Marks
+            from core.models import InternalMark
+            from django.db.models import Sum
+            marks_agg = InternalMark.objects.filter(student__department=dept).aggregate(
+                scored=Sum('total'),
+                t1=Sum('test_1_total'),
+                t2=Sum('test_2_total')
+            )
+            scored = marks_agg['scored'] or 0
+            t1 = marks_agg['t1'] or 0
+            t2 = marks_agg['t2'] or 0
+            max_marks = t1 + t2
+            marks_perc = 0
+            if max_marks > 0:
+                marks_perc = round((float(scored) / float(max_marks)) * 100, 2)
+                
+            report_data.append({
+                "id": dept.id,
+                "department_name": dept.name,
+                "total_students": student_count,
+                "attendance_percentage": attendance_perc,
+                "marks_percentage": marks_perc
+            })
+            
+        return Response(report_data)
+
+class AdminStudentReportView(APIView):
+    def get(self, request):
+        department_id = request.GET.get('department_id')
+        semester = request.GET.get('semester')
+        
+        students = Student.objects.all()
+        if department_id:
+            students = students.filter(department_id=department_id)
+        if semester:
+            students = students.filter(semester=semester)
+            
+        students = students.select_related('department')
+        report_data = []
+        
+        # Batch query for efficiency
+        from core.models import InternalMark
+        from django.db.models import Count, Sum
+        
+        for student in students:
+            # Attendance
+            total_attendance = Attendance.objects.filter(student=student).count()
+            present_attendance = Attendance.objects.filter(student=student, status='P').count()
+            attendance_perc = 0
+            if total_attendance > 0:
+                attendance_perc = round((present_attendance / total_attendance) * 100, 2)
+                
+            # Marks
+            marks_agg = InternalMark.objects.filter(student=student).aggregate(
+                scored=Sum('total'),
+                t1=Sum('test_1_total'),
+                t2=Sum('test_2_total')
+            )
+            scored = marks_agg['scored'] or 0
+            t1 = marks_agg['t1'] or 0
+            t2 = marks_agg['t2'] or 0
+            max_marks = t1 + t2
+            marks_perc = 0
+            if max_marks > 0:
+                marks_perc = round((float(scored) / float(max_marks)) * 100, 2)
+                
+            report_data.append({
+                "id": student.id,
+                "name": student.name,
+                "register_number": student.register_number,
+                "department_name": student.department.name,
+                "semester": student.semester,
+                "attendance_percentage": attendance_perc,
+                "marks_percentage": marks_perc
+            })
+            
+        return Response(report_data)
+
+class AdminDepartmentDetailView(APIView):
+    def get_object(self, pk):
+        try:
+            return Department.objects.get(pk=pk)
+        except Department.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        dept = self.get_object(pk)
+        if not dept:
+            return Response({"error": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = DepartmentSerializer(dept)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        dept = self.get_object(pk)
+        if not dept:
+            return Response({"error": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        serializer = DepartmentSerializer(dept, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        dept = self.get_object(pk)
+        if not dept:
+            return Response({"error": "Department not found"}, status=status.HTTP_404_NOT_FOUND)
+        dept.delete()
+        return Response({"message": "Department deleted successfully"})
+
+class AdminSubjectDetailView(APIView):
+    def get_object(self, pk):
+        try:
+            return Subject.objects.get(pk=pk)
+        except Subject.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        subject = self.get_object(pk)
+        if not subject:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SubjectSerializer(subject)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        subject = self.get_object(pk)
+        if not subject:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        serializer = SubjectCreateSerializer(subject, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        subject = self.get_object(pk)
+        if not subject:
+            return Response({"error": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
+        subject.delete()
+        return Response({"message": "Subject deleted successfully"})

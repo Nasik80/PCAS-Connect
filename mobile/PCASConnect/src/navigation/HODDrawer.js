@@ -9,6 +9,7 @@ import HODAssignTeacherScreen from '../screens/HODAssignTeacherScreen';
 import HODAnnouncementScreen from '../screens/HODAnnouncementScreen';
 import HODReportsScreen from '../screens/HODReportsScreen';
 import HODTimeTableEditorScreen from '../screens/HODTimeTableEditorScreen';
+import TeacherStudyNotesScreen from '../screens/TeacherStudyNotesScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 
 const Drawer = createDrawerNavigator();
@@ -32,6 +33,15 @@ const HODDrawer = () => {
                 options={{
                     title: 'Dashboard',
                     drawerIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />
+                }}
+            />
+
+            <Drawer.Screen
+                name="TeacherStudyNotes"
+                component={TeacherStudyNotesScreen}
+                options={{
+                    title: 'Study Notes',
+                    drawerIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />
                 }}
             />
 

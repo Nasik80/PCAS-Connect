@@ -39,6 +39,25 @@ export const getTeacherTodayTimetable = async (teacherId) => {
     }
 };
 
+export const fetchTeacherStudyNotes = async (teacherId) => {
+    const response = await api.get(`/api/teacher/study-notes/?teacher_id=${teacherId}`);
+    return response.data;
+};
+
+export const uploadStudyNote = async (formData) => {
+    const response = await api.post(`/api/teacher/study-notes/`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
+};
+
+export const deleteStudyNote = async (noteId) => {
+    const response = await api.delete(`/api/teacher/study-notes/${noteId}/`);
+    return response.data;
+};
+
 // --- HOD ENDPOINTS ---
 
 export const getHODDashboard = async (teacherId) => {

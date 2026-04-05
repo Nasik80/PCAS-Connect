@@ -6,6 +6,7 @@ import { colors } from '../constants/colors';
 import TeacherTabs from './TeacherTabs';
 import TeacherAnnouncementsScreen from '../screens/TeacherAnnouncementsScreen';
 import TeacherPastAttendanceScreen from '../screens/TeacherPastAttendanceScreen';
+import TeacherStudyNotesScreen from '../screens/TeacherStudyNotesScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import RoleSelectScreen from '../screens/RoleSelectScreen'; // For Logout
 
@@ -30,6 +31,14 @@ const TeacherDrawer = () => {
                 options={{
                     title: 'Dashboard',
                     drawerIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />
+                }}
+            />
+            <Drawer.Screen
+                name="TeacherStudyNotes"
+                component={TeacherStudyNotesScreen}
+                options={{
+                    title: 'Study Notes',
+                    drawerIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={size} color={color} />
                 }}
             />
             <Drawer.Screen

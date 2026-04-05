@@ -22,9 +22,7 @@ const Sidebar = () => {
         { name: 'Teachers', icon: Users, path: '/teachers' },
         { name: 'Students', icon: GraduationCap, path: '/students' },
         { name: 'Timetable', icon: Calendar, path: '/timetable' },
-        { name: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
         { name: 'Reports', icon: FileText, path: '/reports' },
-        { name: 'Settings', icon: Settings, path: '/settings' },
     ];
 
     const handleLogout = () => {

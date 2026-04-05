@@ -9,6 +9,7 @@ import StudentDashboardScreen from '../screens/StudentDashboardScreen';
 import StudentTimeTableScreen from '../screens/StudentTimeTableScreen';
 import StudentSubjectsScreen from '../screens/StudentSubjectsScreen';
 import StudentProfileScreen from '../screens/StudentProfileScreen';
+import StudyNotesScreen from '../screens/StudyNotesScreen';
 
 // Dummy Screens for now
 const DummyScreen = ({ name }) => (
@@ -72,11 +73,11 @@ const StudentTabs = () => {
       />
 
       <Tab.Screen
-        name="Notifications"
-        children={() => <DummyScreen name="Notifications" />}
+        name="StudyNotes"
+        component={StudyNotesScreen}
         options={{
-          tabBarLabel: 'Notices',
-          tabBarIcon: ({ color, size }) => <Bell color={color} size={24} />,
+          tabBarLabel: 'Notes',
+          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={24} />,
         }}
       />
 

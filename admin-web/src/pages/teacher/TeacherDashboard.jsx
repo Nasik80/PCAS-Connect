@@ -135,6 +135,13 @@ const TeacherDashboard = () => {
                             <BookOpen className="w-5 h-5" />
                             <span className="font-medium">Internal Marks</span>
                         </button>
+                        <button
+                            onClick={() => navigate('/teacher/study-notes')}
+                            className="flex items-center justify-center space-x-2 bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 p-4 rounded-xl shadow-sm transition-all"
+                        >
+                            <BookOpen className="w-5 h-5" />
+                            <span className="font-medium">Study Notes</span>
+                        </button>
                     </div>
                 </div>
 

@@ -73,22 +73,7 @@ const Login = () => {
 
                 {/* Role Switcher Tabs */}
                 <div className="flex justify-center space-x-2 mb-6 bg-gray-100 p-1 rounded-lg">
-                    <button
-                        type="button"
-                        onClick={() => setRole('student')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${role === 'student' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        Student
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setRole('teacher')}
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${role === 'teacher' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        Teacher
-                    </button>
+                   
                     <button
                         type="button"
                         onClick={() => setRole('admin')}

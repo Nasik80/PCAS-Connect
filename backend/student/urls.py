@@ -6,7 +6,8 @@ from .views import (
     StudentAttendanceMonthlyView,
     StudentTimeTableView,
     StudentProfileDetailView,
-    StudentChangePasswordView
+    StudentChangePasswordView,
+    StudentStudyNotesView
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('<int:student_id>/timetable/', StudentTimeTableView.as_view(), name='student-timetable'),
     path('<int:student_id>/profile/', StudentProfileDetailView.as_view(), name='student-profile'),
     path('change-password/', StudentChangePasswordView.as_view(), name='student-change-password'),
+    path('<int:student_id>/study-notes/', StudentStudyNotesView.as_view(), name='student-study-notes'),
 ]

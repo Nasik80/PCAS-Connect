@@ -61,7 +61,7 @@ The backend serves as the core API for both the mobile app and the admin panel.
    # Run on all interfaces to allow access from specific IP
    python manage.py runserver 0.0.0.0:8000
    ```
-   The API will be accessible at `http://<YOUR_LOCAL_IP>:8000/`.
+   The API will be accessible at \`http://<YOUR_LOCAL_IP>:8000/`.
 
 ---
 

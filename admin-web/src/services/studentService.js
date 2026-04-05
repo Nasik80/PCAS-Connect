@@ -31,3 +31,10 @@ export const getStudentTimetable = async (studentId) => {
     const res = await api.get(`/api/student/${studentId}/timetable/`);
     return res.data;
 };
+
+// GET STUDY NOTES
+export const getStudentStudyNotes = async (studentId) => {
+    const res = await api.get(`/api/student/${studentId}/study-notes/`);
+    return res.data;
+};
+

@@ -403,3 +403,18 @@ class InternalMark(models.Model):
 
     def __str__(self):
         return f"{self.student.name} - {self.subject.code} ({self.total})"
+
+# ------------------------
+# Study Notes
+# ------------------------
+class StudyNote(models.Model):
+    title = models.CharField(max_length=200)
+    file = models.FileField(upload_to='study_notes/')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    semester = models.IntegerField()
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.subject.name}"

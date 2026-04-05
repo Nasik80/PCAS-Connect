@@ -171,7 +171,22 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
+                {/* Quick Actions */}
+                <div>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button
+                            onClick={() => navigate('/student/study-notes')}
+                            className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-xl shadow-sm transition-colors"
+                        >
+                            <BookOpen className="w-5 h-5" />
+                            <span className="font-medium">Study Notes</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* Today's Schedule */}
+
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                         <h3 className="text-lg font-semibold text-gray-800">Today's Schedule</h3>

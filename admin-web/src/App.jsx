@@ -9,6 +9,7 @@ import Students from './pages/Students';
 import Timetable from './pages/Timetable';
 import Attendance from './pages/Attendance';
 import Placeholder from './pages/Placeholder';
+import Reports from './pages/Reports';
 
 import StudentDashboard from './pages/student/StudentDashboard';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -22,6 +23,8 @@ import HODAssignTeacher from './pages/hod/HODAssignTeacher';
 import HODPromote from './pages/hod/HODPromote';
 import HODAnnouncement from './pages/hod/HODAnnouncement';
 import HODInternalMarks from './pages/hod/HODInternalMarks';
+import StudentStudyNotes from './pages/student/StudentStudyNotes';
+import TeacherStudyNotes from './pages/teacher/TeacherStudyNotes';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -114,7 +117,7 @@ function AppRoutes() {
         path="/reports"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <Placeholder title="Reports & Analytics" />
+            <Reports />
           </ProtectedRoute>
         }
       />
@@ -136,6 +139,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/student/study-notes"
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentStudyNotes />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Teacher Routes */}
       <Route
@@ -143,6 +154,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['teacher', 'HOD']}>
             <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/study-notes"
+        element={
+          <ProtectedRoute allowedRoles={['teacher', 'HOD']}>
+            <TeacherStudyNotes />
           </ProtectedRoute>
         }
       />

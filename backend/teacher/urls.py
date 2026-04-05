@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     TeacherLoginView,
     TeacherSubjectsView,
@@ -20,16 +21,20 @@ from .views import (
     HODAttendanceStatsView,
     HODTimetableGetView,
     HODInternalMarksView,
-    HODInternalMarksView,
     TeacherScheduleView,
     TeacherWeeklyTimetableView,
     TeacherInternalMarkEntryView,
     TeacherProfileView,
     TeacherAnnouncementListView,
-    TeacherChangePasswordView
+    TeacherChangePasswordView,
+    StudyNoteViewSet
 )
 
+router = DefaultRouter()
+router.register(r'study-notes', StudyNoteViewSet, basename='study-notes')
+
 urlpatterns = [
+    path('', include(router.urls)),
     # Auth
     path('login/', TeacherLoginView.as_view(), name='teacher-login'),
 
