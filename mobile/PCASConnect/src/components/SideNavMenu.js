@@ -49,7 +49,7 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout, role }) => {
                         <MenuItem
                             icon={<Bell size={22} color="#555" />}
                             label="Announcements"
-                            onPress={() => onNavigate('Announcements')}
+                            onPress={() => onNavigate(role?.toLowerCase() === 'student' ? 'StudentAnnouncements' : 'Announcements')}
                         />
                         <MenuItem
                             icon={<FileText size={22} color="#555" />}
@@ -61,6 +61,13 @@ const SideNavMenu = ({ visible, onClose, onNavigate, onLogout, role }) => {
                             label="Study Notes"
                             onPress={() => onNavigate(role?.toLowerCase() === 'student' ? 'StudyNotes' : 'TeacherStudyNotes')}
                         />
+                        {role?.toLowerCase() === 'student' && (
+                            <MenuItem
+                                icon={<FileText size={22} color="#555" />}
+                                label="Internal Marks"
+                                onPress={() => onNavigate('StudentInternalMarks')}
+                            />
+                        )}
                         <MenuItem
                             icon={<Key size={22} color="#555" />}
                             label="Change Password"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Animated, RefreshControl, Dimensions
+  View, Text, StyleSheet, Animated, RefreshControl, Dimensions, TouchableOpacity
 } from 'react-native';
 import { colors } from '../constants/colors';
 import {
@@ -190,6 +190,25 @@ const StudentDashboardScreen = ({ route, navigation }) => {
             </View>
           </View>
 
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 20 }}>
+           <TouchableOpacity 
+             style={{ flex: 1, backgroundColor: colors.primary, padding: 12, borderRadius: 12, alignItems: 'center' }}
+             onPress={() => navigation.navigate('StudentAnnouncements')}
+           >
+             <Text style={{ color: 'white', fontWeight: 'bold' }}>Announcements</Text>
+           </TouchableOpacity>
+           <TouchableOpacity 
+             style={{ flex: 1, backgroundColor: colors.secondary || '#3b82f6', padding: 12, borderRadius: 12, alignItems: 'center' }}
+             onPress={() => navigation.navigate('StudentInternalMarks')}
+           >
+             <Text style={{ color: 'white', fontWeight: 'bold' }}>Internal Marks</Text>
+           </TouchableOpacity>
         </View>
 
         {/* Today's Schedule */}

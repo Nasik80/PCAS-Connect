@@ -19,6 +19,8 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import StudentProfileScreen from '../screens/StudentProfileScreen';
 import ForcedPasswordChangeScreen from '../screens/ForcedPasswordChangeScreen';
 import TeacherStudyNotesScreen from '../screens/TeacherStudyNotesScreen';
+import StudentAnnouncementsScreen from '../screens/StudentAnnouncementsScreen';
+import StudentInternalMarksScreen from '../screens/StudentInternalMarksScreen';
 
 // Import the Tab Navigator
 import StudentTabs from './StudentTabs';
@@ -49,6 +51,8 @@ const AppNavigator = () => {
         <Stack.Screen name="ForcedPasswordChange" component={ForcedPasswordChangeScreen} />
         <Stack.Screen name="StudentProfile" component={StudentProfileScreen} />
         <Stack.Screen name="TeacherStudyNotes" component={TeacherStudyNotesScreen} />
+        <Stack.Screen name="StudentAnnouncements" component={StudentAnnouncementsScreen} />
+        <Stack.Screen name="StudentInternalMarks" component={StudentInternalMarksScreen} />
 
         {/* HOD Screens */}
         <Stack.Screen name="HODDashboard" component={HODTabs} />

@@ -199,3 +199,55 @@ class StudentStudyNotesView(APIView):
             })
             
         return Response(data)
+
+class StudentInternalMarksView(APIView):
+    def get(self, request, student_id):
+        from core.models import InternalMark
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        marks = InternalMark.objects.filter(student=student)
+        
+        data = []
+        for mark in marks:
+            data.append({
+                "id": mark.id,
+                "subject_name": mark.subject.name,
+                "subject_code": mark.subject.code,
+                "test_1_scored": mark.test_1_scored,
+                "test_1_total": mark.test_1_total,
+                "test_2_scored": mark.test_2_scored,
+                "test_2_total": mark.test_2_total,
+                "total": mark.total,
+                "is_approved": mark.is_approved
+            })
+        return Response(data)
+
+class StudentAnnouncementListView(APIView):
+    def get(self, request, student_id):
+        from core.models import Announcement
+        from django.db.models import Q
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        announcements = Announcement.objects.filter(
+            Q(audience='ALL') | 
+            Q(audience='STUDENTS') | 
+            (Q(audience='DEPT') & Q(department=student.department))
+        ).order_by('-date')
+        
+        data = []
+        for ann in announcements:
+            data.append({
+                "id": ann.id,
+                "title": ann.title,
+                "content": ann.content,
+                "date": ann.date.strftime("%Y-%m-%d"),
+                "sender": ann.sender.username,
+                "audience": ann.audience
+            })
+        return Response(data)

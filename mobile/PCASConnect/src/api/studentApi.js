@@ -52,3 +52,15 @@ export const getStudentTimetable = async (studentId) => {
   const res = await axios.get(`${BASE_URL}/api/student/${studentId}/timetable/`);
   return res.data;
 };
+
+// GET STUDENT ANNOUNCEMENTS
+export const getStudentAnnouncements = async (studentId) => {
+  const res = await axios.get(`${BASE_URL}/api/student/${studentId}/announcements/`);
+  return res.data;
+};
+
+// GET STUDENT INTERNAL MARKS
+export const getStudentInternalMarks = async (studentId) => {
+  const res = await axios.get(`${BASE_URL}/api/student/${studentId}/internal-marks/`);
+  return res.data;
+};
